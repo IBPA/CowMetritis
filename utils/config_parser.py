@@ -55,7 +55,7 @@ class ConfigParser:
         """
         return self.config.options(section)
 
-    def getstr(self, key, section='DEFAULT'):
+    def get_str(self, key, section='DEFAULT'):
         """
         Get key from configuration in string.
 
@@ -68,7 +68,7 @@ class ConfigParser:
         """
         return self.config[section][key]
 
-    def getint(self, key, section='DEFAULT'):
+    def get_int(self, key, section='DEFAULT'):
         """
         Get key from configuration in integer.
 
@@ -81,7 +81,7 @@ class ConfigParser:
         """
         return self.config.getint(section, key)
 
-    def getbool(self, key, section='DEFAULT'):
+    def get_bool(self, key, section='DEFAULT'):
         """
         Get key from configuration in boolean.
 
@@ -94,7 +94,7 @@ class ConfigParser:
         """
         return self.config.getboolean(section, key)
 
-    def getfloat(self, key, section='DEFAULT'):
+    def get_float(self, key, section='DEFAULT'):
         """
         Get key from configuration in float.
 
@@ -106,6 +106,9 @@ class ConfigParser:
             (float) Configuration in float format.
         """
         return self.config.getfloat(section, key)
+
+    def get_str_list(self, key, delim=', ', section='DEFAULT'):
+        return self.config[section][key].split(delim)
 
     def get_section_as_dict(self, section='DEFAULT', value_delim=','):
         """

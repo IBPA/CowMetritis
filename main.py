@@ -17,6 +17,7 @@ import sys
 from managers.preprocess_manager import PreprocessManager
 from utils.config_parser import ConfigParser
 from utils.set_logging import set_logging
+from utils.visualization import visualize_missing_values
 
 # global variables
 DEFAULT_CONFIG_FILE = './config/main.ini'
@@ -48,8 +49,21 @@ def main():
     args = parse_argument()
     configparser = ConfigParser(args.config_file)
 
+    # init object for preprocessing
     pmanager = PreprocessManager(
-        configparser.getstr('input_data'))
+        configparser.get_str('preprocess_config'))
+
+    # read raw data
+    pd_raw_data = pmanager.read_raw_data()
+
+    # visualize missing values
+    visualize_missing_values(
+        pd_raw_data,
+        configparser.get_str('visualization_dir'))
+
+    # impute missing value
+    pd_imputed = pmanager.impute_missing_values(pd_raw_data)
+
 
 if __name__ == '__main__':
     main()
