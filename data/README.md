@@ -16,11 +16,14 @@
 	* P: primiparous, one birth
 	* M: multiparous, more than one birth
 * **CalvDif**: How hard was the birth (calving) event
-	1. **Score 1**: Unassisted
-	2. **Score 2**: Easy Pull / Slight Problem. One person (can be using chains and handles) but without the use of ropes / pulley.
-	2. **Score 3**: Difficult Pull / Two people pulling or one person plus moderate use of ropes / pulley
-	2. **Score 4**: Very Difficult Pull / Large amount of force needed. Ropes / pulley essential for delivery of calf
-	2. **Score 5**: C-section or fetotomy
+	* 1: Unassisted
+	* 2: Easy Pull / Slight Problem. One person (can be using chains and handles) but without the use of ropes / pulley.
+	* 3: Difficult Pull / Two people pulling or one person plus moderate use of ropes / pulley
+	* 4: Very Difficult Pull / Large amount of force needed. Ropes / pulley essential for delivery of calf
+	* 5: C-section or fetotomy
+* **Dyst**: Occurrence of dystocia.
+	* 0: No dystocia (Unassisted calving/parturition that is score 1 from calving difficult)
+	* 1: Dystocia (Assisted calving/birth - Score 2 to 5 from calving difficult score)
 * **CalfInfo**: Gender of the calf
 	* M: Male
 	* F: Female

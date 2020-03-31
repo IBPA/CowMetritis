@@ -64,6 +64,7 @@ def main():
     # impute missing value
     pd_imputed = pmanager.impute_missing_values(pd_raw_data)
 
+    pmanager.detect_outlier(pd_imputed)
 
 if __name__ == '__main__':
     main()
