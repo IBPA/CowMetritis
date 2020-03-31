@@ -17,7 +17,7 @@ import sys
 from managers.preprocess_manager import PreprocessManager
 from utils.config_parser import ConfigParser
 from utils.set_logging import set_logging
-from utils.visualization import visualize_missing_values
+from utils.visualization import visualize_missing_values, plot_projection
 
 # global variables
 DEFAULT_CONFIG_FILE = './config/main.ini'
@@ -53,18 +53,31 @@ def main():
     pmanager = PreprocessManager(
         configparser.get_str('preprocess_config'))
 
-    # read raw data
-    pd_raw_data = pmanager.read_raw_data()
+    # read data
+    pd_data = pmanager.read_data()
 
     # visualize missing values
     visualize_missing_values(
-        pd_raw_data,
+        pd_data,
         configparser.get_str('visualization_dir'))
 
-    # impute missing value
-    pd_imputed = pmanager.impute_missing_values(pd_raw_data)
+    # get independent / dependent variables
+    X, y = pmanager.get_X_and_y(pd_data)
 
-    pmanager.detect_outlier(pd_imputed)
+    # impute missing value
+    X = pmanager.impute_missing_values(pd_data)
+
+
+    X_pc = pmanager.get_principal_components(X)
+    plot_projection(X_pc, y, './output/visualization/PCA.png', 'PCA')
+
+    X_tsne = pmanager.get_tsne(X)
+    plot_projection(X_tsne, y, './output/visualization/TSNE.png', 'TSNE')
+
+
+    # detect and remove outliers
+    pmanager.detect_outlier(X)
+
 
 if __name__ == '__main__':
     main()
