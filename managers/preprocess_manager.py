@@ -112,7 +112,7 @@ class PreprocessManager:
         if self.scale_mode == 'standard':
             scaler = StandardScaler()
         elif self.scale_mode == 'minmax':
-            scaler = MinMaxScaler(feature_range=(-1,1))
+            scaler = MinMaxScaler(feature_range=(-1, 1))
         elif self.scale_mode == 'maxabs':
             scaler = MaxAbsScaler()
         elif self.scale_mode == 'robust':
@@ -173,8 +173,8 @@ class PreprocessManager:
 
         return index
 
-    def remove_outlier(self, X, index):
+    def remove_outlier(self, X, y, index):
         X_index = X.index.tolist()
         inliers = [X_index[i] for i, is_outlier in enumerate(index) if is_outlier]
 
-        return X.loc[inliers]
+        return X.loc[inliers], y.loc[inliers]

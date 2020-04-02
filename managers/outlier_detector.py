@@ -2,7 +2,6 @@
 import logging as log
 
 # third party imports
-import pandas as pd
 from sklearn.ensemble import IsolationForest
 from sklearn.svm import OneClassSVM
 from sklearn.neighbors import LocalOutlierFactor

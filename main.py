@@ -17,7 +17,7 @@ import sys
 from managers.preprocess_manager import PreprocessManager
 from utils.config_parser import ConfigParser
 from utils.set_logging import set_logging
-from utils.visualization import visualize_missing_values, plot_projection
+from utils.visualization import visualize_missing_values, plot_projection, plot_scatter_matrix
 
 # global variables
 DEFAULT_CONFIG_FILE = './config/main.ini'
@@ -70,16 +70,21 @@ def main():
     # impute missing value
     X = pmanager.impute_missing_values(X)
 
-    # detect and remove outliers
+    # detect outliers
     outlier_index = pmanager.detect_outlier(X)
-    X = pmanager.remove_outlier(X, outlier_index)
 
     # perform & visualize dimensionality reduction
     X_pc = pmanager.reduce_dimension(X, 'PCA')
-    plot_projection(X_pc, y, configparser.get_str('visualization_dir'), 'PCA')
+    plot_projection(X_pc, y, 'PCA', configparser.get_str('visualization_dir'), outlier_index)
 
     X_tsne = pmanager.reduce_dimension(X, 'tSNE')
-    plot_projection(X_tsne, y, configparser.get_str('visualization_dir'), 'TSNE')
+    plot_projection(X_tsne, y, 'TSNE', configparser.get_str('visualization_dir'), outlier_index)
+
+    # remove outliers
+    X, y = pmanager.remove_outlier(X, y, outlier_index)
+
+    # plot scatter matrix of the data
+    plot_scatter_matrix(X, y, configparser.get_str('visualization_dir'))
 
 
 if __name__ == '__main__':
