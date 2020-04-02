@@ -37,9 +37,9 @@ def plot_projection(X, y, save_to, mode):
     else:
         raise ValueError('Invalid shape!')
 
-    if mode == 'PCA':
+    if mode.lower() == 'pca':
         name = 'pc'
-    elif mode == 'TSNE':
+    elif mode.lower() == 'tsne':
         name = 'embedding'
     else:
         raise ValueError('Invalid mode: {}'.format(mode))
@@ -51,8 +51,11 @@ def plot_projection(X, y, save_to, mode):
     if X.shape[1] == 3:
         ax.set_zlabel('{}3'.format(name))
 
-    labels = ['treated_cured', 'treated_uncured', 'untreated_cured', 'untreated_uncured']
-    colors = ['r', 'g', 'b', 'y']
+    # labels = ['treated_cured', 'treated_uncured', 'untreated_cured', 'untreated_uncured']
+    # colors = ['r', 'g', 'b', 'y']
+
+    labels = [1, 0]
+    colors = ['b', 'r']
 
     for label, color in zip(labels, colors):
         if X.shape[1] == 2:
@@ -72,4 +75,4 @@ def plot_projection(X, y, save_to, mode):
     ax.legend(labels)
     ax.grid()
 
-    save_figure(fig, save_to)
+    save_figure(fig, os.path.join(save_to, '{}.png'.format(mode)))

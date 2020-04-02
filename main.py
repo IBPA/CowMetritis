@@ -64,19 +64,20 @@ def main():
     # get independent / dependent variables
     X, y = pmanager.get_X_and_y(pd_data)
 
+    # scale features
+    X = pmanager.scale_features(X)
+
     # impute missing value
-    X = pmanager.impute_missing_values(pd_data)
+    X = pmanager.impute_missing_values(X)
 
+    X_pc = pmanager.reduce_dimension(X, 'PCA')
+    plot_projection(X_pc, y, configparser.get_str('visualization_dir'), 'PCA')
 
-    X_pc = pmanager.get_principal_components(X)
-    plot_projection(X_pc, y, './output/visualization/PCA.png', 'PCA')
-
-    X_tsne = pmanager.get_tsne(X)
-    plot_projection(X_tsne, y, './output/visualization/TSNE.png', 'TSNE')
-
+    X_tsne = pmanager.reduce_dimension(X, 'tSNE')
+    plot_projection(X_tsne, y, configparser.get_str('visualization_dir'), 'TSNE')
 
     # detect and remove outliers
-    pmanager.detect_outlier(X)
+    outliers = pmanager.detect_outlier(X)
 
 
 if __name__ == '__main__':
