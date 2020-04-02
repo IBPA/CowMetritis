@@ -174,3 +174,7 @@ class PreprocessManager:
         return index
 
     def remove_outlier(self, X, index):
+        X_index = X.index.tolist()
+        inliers = [X_index[i] for i, is_outlier in enumerate(index) if is_outlier]
+
+        return X.loc[inliers]

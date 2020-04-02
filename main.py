@@ -70,14 +70,16 @@ def main():
     # impute missing value
     X = pmanager.impute_missing_values(X)
 
+    # detect and remove outliers
+    outlier_index = pmanager.detect_outlier(X)
+    X = pmanager.remove_outlier(X, outlier_index)
+
+    # perform & visualize dimensionality reduction
     X_pc = pmanager.reduce_dimension(X, 'PCA')
     plot_projection(X_pc, y, configparser.get_str('visualization_dir'), 'PCA')
 
     X_tsne = pmanager.reduce_dimension(X, 'tSNE')
     plot_projection(X_tsne, y, configparser.get_str('visualization_dir'), 'TSNE')
-
-    # detect and remove outliers
-    outliers = pmanager.detect_outlier(X)
 
 
 if __name__ == '__main__':
