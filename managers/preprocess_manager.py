@@ -55,20 +55,12 @@ class PreprocessManager:
         self.projection_dim = configparser.get_int('projection_dimension')
         self.label_lookup = {}
 
-    # def _assign_label(self, row):
-    #     if row['TRT'] == 'CEF' and row['Cured'] == 1:
-    #         return 'treated_cured'
-    #     elif row['TRT'] == 'CEF' and row['Cured'] == 0:
-    #         return 'treated_uncured'
-    #     elif row['TRT'] == 'CON' and row['Cured'] == 1:
-    #         return 'untreated_cured'
-    #     elif row['TRT'] == 'CON' and row['Cured'] == 0:
-    #         return 'untreated_uncured'
-    #     else:
-    #         raise ValueError('Cannot assign label to row: {}'.format(row))
-
     def encode_label(self, pd_data):
         pd_encoded = pd_data.copy()
+
+        if not self.string_cols:
+            log.info('No columns to encode.')
+            return pd_data
 
         for column in self.string_cols:
             le = preprocessing.LabelEncoder()
@@ -102,9 +94,6 @@ class PreprocessManager:
     def get_X_and_y(self, pd_data):
         X = pd_data[self.independent_cols]
         y = pd_data[self.dependent_col]
-
-        # pd_decoded = self.decode_label(pd_data)
-        # y = pd_decoded.apply(lambda row: self._assign_label(row), axis=1)
 
         return X, y
 

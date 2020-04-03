@@ -46,10 +46,6 @@ def plot_projection(X, y, mode, save_to, outlier_index=None):
     else:
         raise ValueError('Invalid mode: {}'.format(mode))
 
-    y_str = y.copy()
-    y_str.replace(0, 'Not Cured', inplace=True)
-    y_str.replace(1, 'Cured', inplace=True)
-
     fig = plt.figure()
     ax = fig.add_subplot(111, projection=projection)
     ax.set_xlabel('{}1'.format(name))
@@ -57,24 +53,21 @@ def plot_projection(X, y, mode, save_to, outlier_index=None):
     if X.shape[1] == 3:
         ax.set_zlabel('{}3'.format(name))
 
-    # labels = ['treated_cured', 'treated_uncured', 'untreated_cured', 'untreated_uncured']
-    # colors = ['r', 'g', 'b', 'y']
-
-    labels = ['Cured', 'Not Cured']
+    labels = list(set(y.tolist()))
     colors = ['b', 'r']
 
     for label, color in zip(labels, colors):
         if X.shape[1] == 2:
             ax.scatter(
-                X.loc[y_str == label, '{}1'.format(name)],
-                X.loc[y_str == label, '{}2'.format(name)],
+                X.loc[y == label, '{}1'.format(name)],
+                X.loc[y == label, '{}2'.format(name)],
                 c=color,
                 s=30)
         else:
             ax.scatter(
-                X.loc[y_str == label, '{}1'.format(name)],
-                X.loc[y_str == label, '{}2'.format(name)],
-                X.loc[y_str == label, '{}3'.format(name)],
+                X.loc[y == label, '{}1'.format(name)],
+                X.loc[y == label, '{}2'.format(name)],
+                X.loc[y == label, '{}3'.format(name)],
                 c=color,
                 s=30)
 
@@ -109,6 +102,9 @@ def plot_scatter_matrix(X, y, save_to):
     color_labels = y.copy()
     color_labels.replace(0, 'red', inplace=True)
     color_labels.replace(1, 'blue', inplace=True)
+
+    color_labels.replace('low', 'red', inplace=True)
+    color_labels.replace('high', 'blue', inplace=True)
 
     axs = scatter_matrix(X, figsize=(20, 20), marker='o', c=color_labels, diagonal='hist')
     fig = axs[0, 0].get_figure()
