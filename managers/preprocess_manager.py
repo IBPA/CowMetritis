@@ -16,7 +16,6 @@ sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 
 # third party imports
-import numpy as np
 import pandas as pd
 from sklearn import preprocessing
 from sklearn.decomposition import PCA
@@ -24,9 +23,9 @@ from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, MaxAbsScaler, RobustScaler
 
 # local imports
-from utils.config_parser import ConfigParser
 from missing_value_imputer import knn_imputer, iterative_imputer
 from outlier_detector import isolation_forest, one_class_svm, local_outlier_factor
+from utils.config_parser import ConfigParser
 
 
 class PreprocessManager:
@@ -39,25 +38,40 @@ class PreprocessManager:
         Class initializer.
 
         Inputs:
+            configfile: (str) Configuration file path.
         """
         # load config parser
         configparser = ConfigParser(configfile)
 
-        # variables
+        # read the configuration file
         self.input_file = configparser.get_str('input_data')
-        self.string_cols = configparser.get_str_list('string_columns')
-        self.category_cols = configparser.get_str_list('category_columns')
         self.independent_cols = configparser.get_str_list('independent_columns')
         self.dependent_col = configparser.get_str('dependent_column')
+        self.string_cols = configparser.get_str_list('string_columns')
+        self.category_cols = configparser.get_str_list('category_columns')
         self.scale_mode = configparser.get_str('scale_mode')
         self.mvi_mode = configparser.get_str('mvi_mode')
         self.outlier_mode = configparser.get_str('outlier_mode')
+        self.dimension_reduction_mode = configparser.get_str('dimension_reduction_mode')
         self.projection_dim = configparser.get_int('projection_dimension')
-        self.label_lookup = {}
 
-    def encode_label(self, pd_data):
+        # initialize label lookup dictionary
+        self.category_lookup = {}
+
+    def encode_category(self, pd_data):
+        """
+        Encode the categorical columns of the input data.
+
+        Inputs:
+            pd_data: (DataFrame) Data that needs category encoding.
+
+        Returns:
+            pd_encoded: (DataFrame) Data with categories encoded.
+        """
         pd_encoded = pd_data.copy()
 
+        # we only encode columns with string data.
+        # integer categrical columns are not encoded.
         if not self.string_cols:
             log.info('No columns to encode.')
             return pd_data
@@ -68,15 +82,32 @@ class PreprocessManager:
 
             log.info('Encoding label for column \'%s\': %s', column, list(le.classes_))
             pd_encoded[column] = le.transform(pd_encoded[column].tolist())
-            self.label_lookup[column] = le
+
+            # store the encoder as dictionary for future decoding
+            self.category_lookup[column] = le
 
         return pd_encoded
 
-    def decode_label(self, pd_data):
+    def decode_category(self, pd_data):
+        """
+        Decode the categorical columns of the input data.
+
+        Inputs:
+            pd_data: (DataFrame) Data that needs category decoding.
+
+        Returns:
+            pd_decoded: (DataFrame) Data with categories decoded.
+        """
         pd_decoded = pd_data.copy()
 
+        # we only decode columns with string data.
+        # integer categrical columns are not decoded.
+        if not self.string_cols:
+            log.info('No columns to decode.')
+            return pd_data
+
         for column in self.string_cols:
-            le = self.label_lookup[column]
+            le = self.category_lookup[column]
 
             log.info('Decoding label for column \'%s\': %s', column, list(le.classes_))
             pd_decoded[column] = le.inverse_transform(pd_decoded[column].astype(int).tolist())
@@ -84,27 +115,55 @@ class PreprocessManager:
         return pd_decoded
 
     def read_data(self, encode=True):
+        """
+        Read data.
+
+        Inputs:
+            encode: (bool, optional) If True, encode the categorical columns.
+
+        Returns:
+            pd_data: (DataFrame) Read data.
+        """
         pd_data = pd.read_csv(self.input_file, na_values='.', index_col='ID')
 
         if encode:
-            return self.encode_label(pd_data)
+            return self.encode_category(pd_data)
         else:
             return pd_data
 
     def get_X_and_y(self, pd_data):
+        """
+        Extract independent and dependent variables.
+
+        Inputs:
+            pd_data: (DataFrame) Input raw data.
+
+        Returns:
+            X: (DataFrame) Independent variables.
+            y: (DataFrame) Dependent variables.
+        """
         X = pd_data[self.independent_cols]
         y = pd_data[self.dependent_col]
 
         return X, y
 
     def scale_features(self, X):
-        if self.scale_mode == 'standard':
+        """
+        Scale the independent variables.
+
+        Inputs:
+            X: (DataFrame) Independent variables.
+
+        Returns:
+            pd_new_X: (DataFrame) Scaled independent variables.
+        """
+        if self.scale_mode.lower() == 'standard':
             scaler = StandardScaler()
-        elif self.scale_mode == 'minmax':
+        elif self.scale_mode.lower() == 'minmax':
             scaler = MinMaxScaler(feature_range=(-1, 1))
-        elif self.scale_mode == 'maxabs':
+        elif self.scale_mode.lower() == 'maxabs':
             scaler = MaxAbsScaler()
-        elif self.scale_mode == 'robust':
+        elif self.scale_mode.lower() == 'robust':
             scaler = RobustScaler()
         else:
             raise ValueError('Invalid scaling mode: {}'.format(self.scale_mode))
@@ -117,9 +176,21 @@ class PreprocessManager:
         return pd_new_X
 
     def impute_missing_values(self, X, round_categories=False):
-        if self.mvi_mode == 'knn':
+        """
+        Inpute missing values of the independent variables.
+
+        Inputs:
+            X: (DataFrame) Independent variables.
+            round_categories: (bool, optional) If True, round the
+                categorical columns to the nearest integer.
+
+        Returns:
+            pd_new_X: (DataFrame) Independent variables with
+                missinv values filled.
+        """
+        if self.mvi_mode.lower() == 'knn':
             pd_imputed = knn_imputer(X)
-        elif self.mvi_mode == 'iterative':
+        elif self.mvi_mode.lower() == 'iterative':
             pd_imputed = iterative_imputer(X)
         else:
             raise ValueError('Invalid MVI mode: {}'.format(self.mvi_mode))
@@ -133,29 +204,48 @@ class PreprocessManager:
 
         return pd_imputed
 
-    def reduce_dimension(self, X, mode):
-        if mode.lower() == 'pca':
+    def reduce_dimension(self, X):
+        """
+        Perform dimensionality reduction.
+
+        Inputs:
+            X: (DataFrame) Independent variables.
+
+        Returns:
+            pd_new_X: (DataFrame) Reduced dimension independent variables.
+            mode: (str) Dimensionality reduction used (PCA | tSNE)
+        """
+        if self.dimension_reduction_mode.lower() == 'pca':
             model = PCA(n_components=self.projection_dim)
             column_prefix = 'pc'
-        elif mode.lower() == 'tsne':
+        elif self.dimension_reduction_mode.lower() == 'tsne':
             model = TSNE(n_components=self.projection_dim)
             column_prefix = 'embedding'
         else:
-            raise ValueError('Invalid mode: {}'.format(mode))
+            raise ValueError('Invalid mode: {}'.format(self.dimension_reduction_mode))
 
         pd_new_X = pd.DataFrame(
             model.fit_transform(X),
             index=X.index,
             columns=[column_prefix + str(i+1) for i in range(self.projection_dim)])
 
-        return pd_new_X
+        return pd_new_X, self.dimension_reduction_mode
 
     def detect_outlier(self, X):
-        if self.outlier_mode == 'isolation_forest':
+        """
+        Detect outliers.
+
+        Inputs:
+            X: (DataFrame) Independent variables.
+
+        Returns:
+            index: (list) False for outliers and True for inliers.
+        """
+        if self.outlier_mode.lower() == 'isolation_forest':
             index = isolation_forest(X)
-        elif self.outlier_mode == 'one_class_svm':
+        elif self.outlier_mode.lower() == 'one_class_svm':
             index = one_class_svm(X)
-        elif self.outlier_mode == 'LOF':
+        elif self.outlier_mode.lower() == 'lof':
             index = local_outlier_factor(X)
         else:
             raise ValueError('Invalid outlier mode: {}'.format(self.outlier_mode))
@@ -163,7 +253,22 @@ class PreprocessManager:
         return index
 
     def remove_outlier(self, X, y, index):
+        """
+        Remove outliers.
+
+        Inputs:
+            X: (DataFrame) Independent variables.
+            y: (DataFrame) Dedependent variables.
+            index: (list) False for outliers and True for inliers.
+
+        Returns:
+            X_inliers: (DataFrame) Independent variables without outliers.
+            y_inliers: (DataFrame) Dedependent variables without outliers.
+        """
         X_index = X.index.tolist()
         inliers = [X_index[i] for i, is_outlier in enumerate(index) if is_outlier]
 
-        return X.loc[inliers], y.loc[inliers]
+        X_inliers = X.loc[inliers]
+        y_inliers = y.loc[inliers]
+
+        return X_inliers, y_inliers

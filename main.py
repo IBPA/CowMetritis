@@ -3,15 +3,12 @@ Authors:
     Jason Youn -jyoun@ucdavis.edu
 
 Description:
-    Description goes here.
+    Main python file to run.
 
 To-do:
 """
 # standard imports
 import argparse
-import logging as log
-import os
-import sys
 
 # local imports
 from managers.preprocess_manager import PreprocessManager
@@ -74,11 +71,12 @@ def main():
     outlier_index = pmanager.detect_outlier(X)
 
     # perform & visualize dimensionality reduction
-    X_pc = pmanager.reduce_dimension(X, 'PCA')
-    plot_projection(X_pc, y, 'PCA', configparser.get_str('visualization_dir'), outlier_index)
-
-    X_tsne = pmanager.reduce_dimension(X, 'tSNE')
-    plot_projection(X_tsne, y, 'TSNE', configparser.get_str('visualization_dir'), outlier_index)
+    X_dr, reduction_mode = pmanager.reduce_dimension(X)
+    plot_projection(
+        X_dr, y,
+        reduction_mode,
+        configparser.get_str('visualization_dir'),
+        outlier_index)
 
     # remove outliers
     X, y = pmanager.remove_outlier(X, y, outlier_index)

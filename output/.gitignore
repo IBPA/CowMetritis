@@ -1,9 +1,9 @@
 # ignore everything in this directory
-*
+# *
 
 # except for these files and directories
-!.gitignore
-visualization/*
+# !.gitignore
+# visualization/*
 
 # even if they're in subdirectories
-!*/
+# !*/

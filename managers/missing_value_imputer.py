@@ -3,6 +3,7 @@ Authors:
     Jason Youn - jyoun@ucdavis.edu
 
 Description:
+    Collection of wrapper functions for missing value imputation.
 
 To-do:
 """
@@ -12,8 +13,18 @@ from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import KNNImputer, IterativeImputer
 
 
-def knn_imputer(pd_data, n_neighbors=2):
-    imputer = KNNImputer(n_neighbors=n_neighbors)
+def knn_imputer(pd_data):
+    """
+    Impute missing values using KNN.
+
+    Inputs:
+        pd_data: (DataFrame) Data containing missing values.
+
+    Returns:
+        pd_imputed: (DataFrame) Data with missing values imputed.
+    """
+    imputer = KNNImputer()
+
     pd_imputed = pd.DataFrame(
         imputer.fit_transform(pd_data),
         index=pd_data.index,
@@ -22,8 +33,19 @@ def knn_imputer(pd_data, n_neighbors=2):
     return pd_imputed
 
 
-def iterative_imputer(pd_data, max_iter=10):
-    imputer = IterativeImputer(max_iter=max_iter)
+def iterative_imputer(pd_data):
+    """
+    Impute missing values using the multivariate imputer
+    that estimates each feature from all the others.
+
+    Inputs:
+        pd_data: (DataFrame) Data containing missing values.
+
+    Returns:
+        pd_imputed: (DataFrame) Data with missing values imputed.
+    """
+    imputer = IterativeImputer()
+
     pd_imputed = pd.DataFrame(
         imputer.fit_transform(pd_data),
         index=pd_data.index,
