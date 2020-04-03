@@ -10,13 +10,14 @@ To-do:
 # standard imports
 import logging as log
 
+
 def set_logging(log_file=None, log_level=log.DEBUG):
     """
     Configure logging. By default, log to the console.
     If requested, log to a file specified by the user.
     Inputs:
-        log_file: (str) Path to save the log file.
-        log_level: (log.level) Log level.
+        log_file: (str, optional) Path to save the log file.
+        log_level: (log.level, optional) Log level.
     """
     # create logger
     logger = log.getLogger()

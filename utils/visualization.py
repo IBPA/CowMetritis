@@ -2,8 +2,6 @@
 import os
 
 # third party imports
-import numpy as np
-import pandas as pd
 import missingno as msno
 import matplotlib.pyplot as plt
 from pandas.plotting import scatter_matrix

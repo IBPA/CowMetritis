@@ -21,7 +21,7 @@ class ConfigParser:
         Class initializer for ConfigParser.
 
         Inputs:
-            filepath: (str) File path of .ini config file.
+            filepath: (str) Filepath of the .ini config file.
         """
         self.config = configparser.ConfigParser()
         self.config.optionxform = str
