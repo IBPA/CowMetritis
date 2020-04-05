@@ -59,24 +59,24 @@ Fevd0: (numeric, categorical) If the animal was or not febrile at the metritis d
 	- 1: Yes
 	- 0: No
 Tempd0: (numeric) Rectal temperature (°C) measured on the day of metritis diagnosis
-Cured: (numeric, categorical) If the animal cured up to 12 days after enrolment
-	- 1: Cured
-	- 0: Not cured
-Daystocure: (numeric) Days from enrolment (metritis diagnosis) to cure
-DIMcure: (numeric) Days in milk for cure (Days from the calving to the day that the cure was diagnosed)
 Milkincrease5DIM: (numeric) Slope of the increase in milk production in the first 05 days of lactation
 Milkincrease7DIM: (numeric) Slope of the increase in milk production in the first 07 days of lactation
 Milkincrease9DIM: (numeric) Slope of the increase in milk production in the first 09 days of lactation
+Daystocure: (numeric) Days from enrolment (metritis diagnosis) to cure
+DIMcure: (numeric) Days in milk for cure (Days from the calving to the day that the cure was diagnosed)
+Cured: (numeric, categorical) If the animal cured up to 12 days after enrolment
+	- 1: Cured
+	- 0: Not cured
 ```
 
 5. Missing attribute values
 
 ```
 CalvDif: 5
-Daystocure: 153
-DIMcure: 153
 Milkincrease5DIM: 87
 Milkincrease7DIM: 75
 Milkincrease9DIM: 68
+Daystocure: 153
+DIMcure: 153
 ```
 
