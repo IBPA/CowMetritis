@@ -53,13 +53,13 @@ def main():
     # read data
     pd_data = pmanager.read_data()
 
-    # visualize missing values
-    visualize_missing_values(
-        pd_data,
-        configparser.get_str('visualization_dir'))
-
     # get independent / dependent variables
     X, y = pmanager.get_X_and_y(pd_data)
+
+    # visualize missing values
+    visualize_missing_values(
+        X,
+        configparser.get_str('visualization_dir'))
 
     # scale features
     X = pmanager.scale_features(X)
