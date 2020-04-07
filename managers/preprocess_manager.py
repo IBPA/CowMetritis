@@ -23,7 +23,7 @@ from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, MaxAbsScaler, RobustScaler
 
 # local imports
-from missing_value_imputer import knn_imputer, iterative_imputer
+from missing_value_imputer import knn_imputer, iterative_imputer, missforest_imputer
 from outlier_detector import isolation_forest, one_class_svm, local_outlier_factor
 from utils.config_parser import ConfigParser
 
@@ -192,6 +192,8 @@ class PreprocessManager:
             pd_imputed = knn_imputer(X)
         elif self.mvi_mode.lower() == 'iterative':
             pd_imputed = iterative_imputer(X)
+        elif self.mvi_mode.lower() == 'missforest':
+            pd_imputed = missforest_imputer(X)
         else:
             raise ValueError('Invalid MVI mode: {}'.format(self.mvi_mode))
 
