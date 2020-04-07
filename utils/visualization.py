@@ -39,6 +39,8 @@ def plot_projection(X, y, mode, save_to, outlier_index=None):
 
     if mode.lower() == 'pca':
         name = 'pc'
+    elif mode.lower() == 'sparsepca':
+        name = 'pc'
     elif mode.lower() == 'tsne':
         name = 'embedding'
     else:

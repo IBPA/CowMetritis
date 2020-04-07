@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 # third party imports
 import pandas as pd
 from sklearn import preprocessing
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, SparsePCA
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, MaxAbsScaler, RobustScaler
 
@@ -216,6 +216,9 @@ class PreprocessManager:
             mode: (str) Dimensionality reduction used (PCA | tSNE)
         """
         if self.dimension_reduction_mode.lower() == 'pca':
+            model = PCA(n_components=self.projection_dim)
+            column_prefix = 'pc'
+        elif self.dimension_reduction_mode.lower() == 'sparsepca':
             model = PCA(n_components=self.projection_dim)
             column_prefix = 'pc'
         elif self.dimension_reduction_mode.lower() == 'tsne':
