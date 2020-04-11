@@ -160,7 +160,7 @@ class PreprocessManager:
         if self.scale_mode.lower() == 'standard':
             scaler = StandardScaler()
         elif self.scale_mode.lower() == 'minmax':
-            scaler = MinMaxScaler(feature_range=(-1, 1))
+            scaler = MinMaxScaler(feature_range=(0, 1))
         elif self.scale_mode.lower() == 'maxabs':
             scaler = MaxAbsScaler()
         elif self.scale_mode.lower() == 'robust':
