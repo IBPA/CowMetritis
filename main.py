@@ -11,10 +11,8 @@ To-do:
 import argparse
 
 # third party imports
+from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import StratifiedKFold
-from mlxtend.feature_selection import ExhaustiveFeatureSelector as EFS
-from sklearn.feature_selection import RFECV
-import matplotlib.pyplot as plt
 
 # local imports
 from managers.preprocess_manager import PreprocessManager
@@ -22,6 +20,7 @@ from managers.classifier_manager import ClassifierManager
 from utils.config_parser import ConfigParser
 from utils.set_logging import set_logging
 from utils.visualization import visualize_missing_values, plot_projection, plot_scatter_matrix
+from utils.utilities import get_results_of_search
 
 # global variables
 DEFAULT_CONFIG_FILE = './config/main.ini'
@@ -78,19 +77,41 @@ def preprocess(configparser):
     # plot scatter matrix of the data
     plot_scatter_matrix(X, y, configparser.get_str('visualization_dir'))
 
+    # do feature selection
+    X = pmanager.feature_selection(X, y, configparser.get_str('visualization_dir'))
+
     return X, y
 
 
 def run_model(X, y, configparser):
     cmanager = ClassifierManager(configparser.get_str('classifier_config'))
 
+    # perform grid searching if specified in the config file
+    if cmanager.get_mode() == 'grid':
+        grid_search = GridSearchCV(
+            cmanager.get_classifier(),
+            param_grid=cmanager.get_params(),
+            scoring='f1',
+            n_jobs=-1,
+            verbose=1)
 
+        grid_search.fit(X, y)
+        best_params = get_results_of_search(grid_search.cv_results_, scoring='f1')
 
-    # from sklearn.model_selection import StratifiedKFold
+        # write grid search results to the config file
+        cmanager.write_grid_search_results(
+            best_params,
+            configparser.get_str('updated_classifier_config'))
+
+        # updated the object with the new classifier using best parameters
+        cmanager = ClassifierManager(configparser.get_str('updated_classifier_config'))
+
     # skf = StratifiedKFold(shuffle=True)
 
     # X = X.to_numpy()
     # y = y.to_numpy()
+
+    # accuracy = 0
 
     # for train_index, test_index in skf.split(X, y):
     #     X_train, X_test = X[train_index], X[test_index]
@@ -98,42 +119,9 @@ def run_model(X, y, configparser):
 
     #     cmanager.fit(X_train, y_train)
 
-    #     print(cmanager.score(X_test, y_test))
+    #     accuracy += cmanager.score(X_test, y_test)
 
-
-    selector = RFECV(
-        cmanager.get_classifier(),
-        step=1,
-        min_features_to_select=4,
-        cv=5,
-        scoring='accuracy',
-        n_jobs=-1)
-    selector = selector.fit(X, y)
-    print(selector.support_)
-    print(selector.ranking_)
-
-    plt.figure()
-    plt.xlabel("Number of features selected")
-    plt.ylabel("Cross validation score (nb of correct classifications)")
-    plt.plot(range(1, len(selector.grid_scores_) + 1), selector.grid_scores_)
-    plt.show()
-
-
-
-
-    # efs = EFS(cmanager.get_classifier(),
-    #           min_features=1,
-    #           max_features=X.shape[1],
-    #           scoring='accuracy',
-    #           print_progress=True,
-    #           cv=5,
-    #           n_jobs=-1)
-
-    # efs = efs.fit(X, y)
-
-    # print('Best accuracy score: %.2f' % efs.best_score_)
-    # print('Best subset (indices):', efs.best_idx_)
-    # print('Best subset (corresponding names):', efs.best_feature_names_)
+    # print(accuracy / 5)
 
 
 def main():

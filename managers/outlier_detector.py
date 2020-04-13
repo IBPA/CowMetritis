@@ -29,17 +29,19 @@ def convert_index_2_bool(index):
     return [True if i == 1 else False for i in index]
 
 
-def isolation_forest(pd_data):
+def isolation_forest(pd_data, random_state=None):
     """
     Detect outliers using the Isolation Forest algorithm.
 
     Inputs:
         pd_data: (DataFrame) Input data.
+        random_state: (int, optional) Seed of the pseudo
+            random number generator to use.
 
     Returns:
         (list) False for outliers and True for inliers.
     """
-    clf = IsolationForest().fit(pd_data)
+    clf = IsolationForest(n_jobs=-1, random_state=random_state).fit(pd_data)
     outliers = convert_index_2_bool(clf.predict(pd_data).tolist())
 
     log.debug('Number of outliers detected using Isolation Forest: %d', outliers.count(False))
@@ -75,7 +77,7 @@ def local_outlier_factor(pd_data):
     Returns:
         (list) False for outliers and True for inliers.
     """
-    clf = LocalOutlierFactor()
+    clf = LocalOutlierFactor(n_jobs=-1)
     outliers = convert_index_2_bool(clf.fit_predict(pd_data).tolist())
 
     log.debug('Number of outliers detected using Local Outlier Factor: %d', outliers.count(False))

@@ -11,6 +11,22 @@ def save_figure(fig, save_to):
     fig.savefig(save_to, bbox_inches='tight')
 
 
+def plot(x, y, save_to, filename, title=None, xlabel=None, ylabel=None):
+    fig = plt.figure()
+    plt.plot(x, y)
+
+    if title:
+        fig.title(title)
+
+    if xlabel:
+        plt.xlabel(xlabel)
+
+    if ylabel:
+        plt.ylabel(ylabel)
+
+    save_figure(fig, os.path.join(save_to, filename))
+
+
 def visualize_missing_values(pd_data, save_to):
     save_figure(
         msno.matrix(pd_data).get_figure(),
@@ -98,7 +114,7 @@ def plot_projection(X, y, mode, save_to, outlier_index=None):
     save_figure(fig, os.path.join(save_to, '{}.png'.format(mode)))
 
 
-def plot_scatter_matrix(X, y, save_to):
+def plot_scatter_matrix(X, y, save_to, filename='scatter_matrix.png'):
     color_labels = y.copy()
     color_labels.replace(0, 'red', inplace=True)
     color_labels.replace(1, 'blue', inplace=True)

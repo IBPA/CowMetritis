@@ -37,6 +37,17 @@ class ConfigParser:
         """
         log.warning('Failed to read key \'%s\'. Returning None instead.', key)
 
+    def append(self, section, entry):
+        """
+        Append to the configuration.
+
+        Inputs:
+            section: section name to append
+            entry: items to append to specified section
+                in dictionary format
+        """
+        self.config[section] = entry
+
     def write(self, filepath):
         """
         Write configuration.
@@ -44,7 +55,8 @@ class ConfigParser:
         Inputs:
             filepath: (str) File path to save the config file.
         """
-        self.config.write(filepath)
+        with open(filepath, 'w') as configfile:
+            self.config.write(configfile)
 
     def sections(self):
         """
@@ -180,7 +192,7 @@ class ConfigParser:
         dictionary = {}
 
         for key in self.options(section):
-            value = self.getstr(key, section=section)
+            value = self.get_str(key, section=section)
 
             if value_delim:
                 value = value.split(value_delim)

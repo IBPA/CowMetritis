@@ -20,12 +20,15 @@ import pandas as pd
 from sklearn import preprocessing
 from sklearn.decomposition import PCA, SparsePCA
 from sklearn.manifold import TSNE
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, MaxAbsScaler, RobustScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import RFECV
 
 # local imports
 from missing_value_imputer import knn_imputer, iterative_imputer, missforest_imputer
 from outlier_detector import isolation_forest, one_class_svm, local_outlier_factor
 from utils.config_parser import ConfigParser
+from utils.visualization import plot
 
 
 class PreprocessManager:
@@ -54,6 +57,8 @@ class PreprocessManager:
         self.outlier_mode = configparser.get_str('outlier_mode')
         self.dimension_reduction_mode = configparser.get_str('dimension_reduction_mode')
         self.projection_dim = configparser.get_int('projection_dimension')
+        self.rfe_classifier = configparser.get_str('rfe_classifier')
+        self.random_state = configparser.get_int('random_state')
 
         # initialize label lookup dictionary
         self.category_lookup = {}
@@ -160,9 +165,7 @@ class PreprocessManager:
         if self.scale_mode.lower() == 'standard':
             scaler = StandardScaler()
         elif self.scale_mode.lower() == 'minmax':
-            scaler = MinMaxScaler(feature_range=(0, 1))
-        elif self.scale_mode.lower() == 'maxabs':
-            scaler = MaxAbsScaler()
+            scaler = MinMaxScaler()
         elif self.scale_mode.lower() == 'robust':
             scaler = RobustScaler()
         else:
@@ -191,9 +194,9 @@ class PreprocessManager:
         if self.mvi_mode.lower() == 'knn':
             pd_imputed = knn_imputer(X)
         elif self.mvi_mode.lower() == 'iterative':
-            pd_imputed = iterative_imputer(X)
+            pd_imputed = iterative_imputer(X, self.random_state)
         elif self.mvi_mode.lower() == 'missforest':
-            pd_imputed = missforest_imputer(X)
+            pd_imputed = missforest_imputer(X, self.random_state)
         else:
             raise ValueError('Invalid MVI mode: {}'.format(self.mvi_mode))
 
@@ -247,7 +250,7 @@ class PreprocessManager:
             index: (list) False for outliers and True for inliers.
         """
         if self.outlier_mode.lower() == 'isolation_forest':
-            index = isolation_forest(X)
+            index = isolation_forest(X, self.random_state)
         elif self.outlier_mode.lower() == 'one_class_svm':
             index = one_class_svm(X)
         elif self.outlier_mode.lower() == 'lof':
@@ -277,3 +280,29 @@ class PreprocessManager:
         y_inliers = y.loc[inliers]
 
         return X_inliers, y_inliers
+
+    def feature_selection(self, X, y, save_to):
+        if self.rfe_classifier.lower() == 'randomforestclassifier':
+            clf = RandomForestClassifier(random_state=self.random_state)
+        else:
+            raise ValueError('Invalid classifier: {}'.format(self.rfe_classifier))
+
+        selector = RFECV(clf, step=1, min_features_to_select=1, scoring='f1', n_jobs=-1)
+        selector = selector.fit(X, y)
+
+        features = X.columns.to_numpy()
+        selected_features = features[selector.support_]
+        dropped_features = features[~selector.support_]
+
+        log.info('Number of features selected: %d', selector.n_features_)
+        log.info('Selected features: %s', selected_features)
+        log.info('Dropped features: %s', dropped_features)
+        log.info('Feature ranking: %s', selector.ranking_)
+
+        plot(
+            range(1, len(selector.grid_scores_) + 1),
+            selector.grid_scores_,
+            save_to,
+            'feature_selection.png')
+
+        return X[selected_features.tolist()]

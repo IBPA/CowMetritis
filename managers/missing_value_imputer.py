@@ -34,18 +34,20 @@ def knn_imputer(pd_data):
     return pd_imputed
 
 
-def iterative_imputer(pd_data):
+def iterative_imputer(pd_data, random_state=None):
     """
     Impute missing values using the multivariate imputer
     that estimates each feature from all the others.
 
     Inputs:
         pd_data: (DataFrame) Data containing missing values.
+        random_state: (int, optional) Seed of the pseudo
+            random number generator to use.
 
     Returns:
         pd_imputed: (DataFrame) Data with missing values imputed.
     """
-    imputer = IterativeImputer()
+    imputer = IterativeImputer(random_state=random_state)
 
     pd_imputed = pd.DataFrame(
         imputer.fit_transform(pd_data),
@@ -55,17 +57,19 @@ def iterative_imputer(pd_data):
     return pd_imputed
 
 
-def missforest_imputer(pd_data):
+def missforest_imputer(pd_data, random_state=None):
     """
     Impute missing values using the MissForest imputer.
 
     Inputs:
         pd_data: (DataFrame) Data containing missing values.
+        random_state: (int, optional) Seed of the pseudo
+            random number generator to use.
 
     Returns:
         pd_imputed: (DataFrame) Data with missing values imputed.
     """
-    imputer = MissForest()
+    imputer = MissForest(random_state=random_state)
 
     pd_imputed = pd.DataFrame(
         imputer.fit_transform(pd_data),
