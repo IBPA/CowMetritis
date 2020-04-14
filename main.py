@@ -106,14 +106,18 @@ def run_model(X, y, main_config, classifier_config):
             best_params,
             main_config.get_str('updated_classifier_config'))
 
-        # updated the object with the new classifier using best parameters
-        cmanager = ClassifierManager(main_config.get_str('updated_classifier_config'))
+        # update the object with the new classifier using best parameters
+        updated_classifier_config = ConfigParser(main_config.get_str('updated_classifier_config'))
+        cmanager = ClassifierManager(updated_classifier_config)
 
-    skf = StratifiedKFold(shuffle=True)
+    # run best model again to get metrics
+    skf = StratifiedKFold(shuffle=True, random_state=0)
 
     X = X.to_numpy()
     y = y.to_numpy()
 
+    f1_avg = 0
+    accuracy_avg = 0
     for train_index, test_index in skf.split(X, y):
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
@@ -121,17 +125,20 @@ def run_model(X, y, main_config, classifier_config):
         cmanager.fit(X_train, y_train)
         y_pred = cmanager.predict(X_test)
 
-        f1 = f1_score(y_test, y_pred)
-        accuracy = accuracy_score(y_test, y_pred)
-        print(f1, accuracy)
+        f1_avg += f1_score(y_test, y_pred)
+        accuracy_avg += accuracy_score(y_test, y_pred)
+
+    f1_avg /= 5
+    accuracy_avg /= 5
+
+    return f1_avg, accuracy_avg
 
 
 def main():
     """
     Main function.
     """
-    # set log, parse args, and read configuration
-    set_logging()
+    # parse args
     args = parse_argument()
 
     # load config files
@@ -139,12 +146,19 @@ def main():
     preprocess_config = ConfigParser(main_config.get_str('preprocess_config'))
     classifier_config = ConfigParser(main_config.get_str('classifier_config'))
 
+    # set logging
+    set_logging(log_file=main_config.get_str('log_file'))
+
     # run models for all possible combination of preprocessing
     scale_modes = main_config.get_str_list('scale_mode')
     mvi_modes = main_config.get_str_list('mvi_mode')
     outlier_modes = main_config.get_str_list('outlier_mode')
     classifiers = main_config.get_str_list('classifier')
 
+    classifier_f1_dict = {classifier: 0 for classifier in classifiers}
+    classifier_accuracy_dict = {classifier: 0 for classifier in classifiers}
+    classifier_best_preprocessing_f1_dict = {classifier: None for classifier in classifiers}
+    classifier_best_preprocessing_accuracy_dict = {classifier: None for classifier in classifiers}
     all_combinations = [scale_modes, mvi_modes, outlier_modes, classifiers]
 
     for scale_mode, mvi_mode, outlier_mode, classifier in list(itertools.product(*all_combinations)):
@@ -152,7 +166,7 @@ def main():
                  scale_mode, mvi_mode, outlier_mode, classifier)
 
         if classifier in ['MultinomialNB', 'CategoricalNB'] and scale_mode != 'minmax':
-            continue
+            log.info('Skipping this combination...')
 
         preprocess_config.overwrite('scale_mode', scale_mode)
         preprocess_config.overwrite('mvi_mode', mvi_mode)
@@ -163,7 +177,23 @@ def main():
         X, y = preprocess(main_config, preprocess_config)
 
         # run classification model
-        run_model(X, y, main_config, classifier_config)
+        f1, accuracy = run_model(X, y, main_config, classifier_config)
+        log.info('F1: %f', f1)
+        log.info('Accuracy: %f', accuracy)
+
+        # update the best preprocessing combination
+        if classifier_f1_dict[classifier] < f1:
+            classifier_f1_dict[classifier] = f1
+            classifier_best_preprocessing_f1_dict[classifier] = ', '.join([scale_mode, mvi_mode, outlier_mode, classifier])
+
+        if classifier_accuracy_dict[classifier] < accuracy:
+            classifier_accuracy_dict[classifier] = accuracy
+            classifier_best_preprocessing_accuracy_dict[classifier] = ', '.join([scale_mode, mvi_mode, outlier_mode, classifier])
+
+    log.info('Best F1 score for each classifier: %s', classifier_f1_dict)
+    log.info('Best accuracy score for each classifier: %s', classifier_accuracy_dict)
+    log.info('Preprocessing combination of the best F1 score for each classifier: %s', classifier_best_preprocessing_f1_dict)
+    log.info('Preprocessing combination of the best accuracy score for each classifier: %s', classifier_best_preprocessing_accuracy_dict)
 
 
 if __name__ == '__main__':
