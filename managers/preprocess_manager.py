@@ -27,7 +27,6 @@ from sklearn.feature_selection import RFECV
 # local imports
 from missing_value_imputer import knn_imputer, iterative_imputer, missforest_imputer
 from outlier_detector import isolation_forest, one_class_svm, local_outlier_factor
-from utils.config_parser import ConfigParser
 from utils.visualization import plot
 
 
@@ -36,16 +35,13 @@ class PreprocessManager:
     Preprocess the input data.
     """
 
-    def __init__(self, configfile):
+    def __init__(self, configparser):
         """
         Class initializer.
 
         Inputs:
             configfile: (str) Configuration file path.
         """
-        # load config parser
-        configparser = ConfigParser(configfile)
-
         # read the configuration file
         self.input_file = configparser.get_str('input_data')
         self.independent_cols = configparser.get_str_list('independent_columns')
@@ -224,7 +220,7 @@ class PreprocessManager:
             model = PCA(n_components=self.projection_dim)
             column_prefix = 'pc'
         elif self.dimension_reduction_mode.lower() == 'sparsepca':
-            model = PCA(n_components=self.projection_dim)
+            model = SparsePCA(n_components=self.projection_dim)
             column_prefix = 'pc'
         elif self.dimension_reduction_mode.lower() == 'tsne':
             model = TSNE(n_components=self.projection_dim)

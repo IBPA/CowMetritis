@@ -9,10 +9,13 @@ To-do:
 """
 # standard imports
 import argparse
+import itertools
+import logging as log
 
 # third party imports
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import f1_score, accuracy_score
 
 # local imports
 from managers.preprocess_manager import PreprocessManager
@@ -43,16 +46,16 @@ def parse_argument():
     return parser.parse_args()
 
 
-def preprocess(configparser):
+def preprocess(main_config, preprocess_config):
     # init object for preprocessing
-    pmanager = PreprocessManager(configparser.get_str('preprocess_config'))
+    pmanager = PreprocessManager(preprocess_config)
 
     # read data and get independent / dependent variables
     pd_data = pmanager.read_data()
     X, y = pmanager.get_X_and_y(pd_data)
 
     # visualize missing values
-    visualize_missing_values(X, configparser.get_str('visualization_dir'))
+    visualize_missing_values(X, main_config.get_str('visualization_dir'))
 
     # scale features
     X = pmanager.scale_features(X)
@@ -68,23 +71,23 @@ def preprocess(configparser):
     plot_projection(
         X_dr, y,
         reduction_mode,
-        configparser.get_str('visualization_dir'),
+        main_config.get_str('visualization_dir'),
         outlier_index)
 
     # remove outliers
     X, y = pmanager.remove_outlier(X, y, outlier_index)
 
     # plot scatter matrix of the data
-    plot_scatter_matrix(X, y, configparser.get_str('visualization_dir'))
+    plot_scatter_matrix(X, y, main_config.get_str('visualization_dir'))
 
     # do feature selection
-    X = pmanager.feature_selection(X, y, configparser.get_str('visualization_dir'))
+    X = pmanager.feature_selection(X, y, main_config.get_str('visualization_dir'))
 
     return X, y
 
 
-def run_model(X, y, configparser):
-    cmanager = ClassifierManager(configparser.get_str('classifier_config'))
+def run_model(X, y, main_config, classifier_config):
+    cmanager = ClassifierManager(classifier_config)
 
     # perform grid searching if specified in the config file
     if cmanager.get_mode() == 'grid':
@@ -101,27 +104,26 @@ def run_model(X, y, configparser):
         # write grid search results to the config file
         cmanager.write_grid_search_results(
             best_params,
-            configparser.get_str('updated_classifier_config'))
+            main_config.get_str('updated_classifier_config'))
 
         # updated the object with the new classifier using best parameters
-        cmanager = ClassifierManager(configparser.get_str('updated_classifier_config'))
+        cmanager = ClassifierManager(main_config.get_str('updated_classifier_config'))
 
-    # skf = StratifiedKFold(shuffle=True)
+    skf = StratifiedKFold(shuffle=True)
 
-    # X = X.to_numpy()
-    # y = y.to_numpy()
+    X = X.to_numpy()
+    y = y.to_numpy()
 
-    # accuracy = 0
+    for train_index, test_index in skf.split(X, y):
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
 
-    # for train_index, test_index in skf.split(X, y):
-    #     X_train, X_test = X[train_index], X[test_index]
-    #     y_train, y_test = y[train_index], y[test_index]
+        cmanager.fit(X_train, y_train)
+        y_pred = cmanager.predict(X_test)
 
-    #     cmanager.fit(X_train, y_train)
-
-    #     accuracy += cmanager.score(X_test, y_test)
-
-    # print(accuracy / 5)
+        f1 = f1_score(y_test, y_pred)
+        accuracy = accuracy_score(y_test, y_pred)
+        print(f1, accuracy)
 
 
 def main():
@@ -131,13 +133,37 @@ def main():
     # set log, parse args, and read configuration
     set_logging()
     args = parse_argument()
-    configparser = ConfigParser(args.config_file)
 
-    # perform preprocessing
-    X, y = preprocess(configparser)
+    # load config files
+    main_config = ConfigParser(args.config_file)
+    preprocess_config = ConfigParser(main_config.get_str('preprocess_config'))
+    classifier_config = ConfigParser(main_config.get_str('classifier_config'))
 
-    # run classification model
-    run_model(X, y, configparser)
+    # run models for all possible combination of preprocessing
+    scale_modes = main_config.get_str_list('scale_mode')
+    mvi_modes = main_config.get_str_list('mvi_mode')
+    outlier_modes = main_config.get_str_list('outlier_mode')
+    classifiers = main_config.get_str_list('classifier')
+
+    all_combinations = [scale_modes, mvi_modes, outlier_modes, classifiers]
+
+    for scale_mode, mvi_mode, outlier_mode, classifier in list(itertools.product(*all_combinations)):
+        log.info('Running grid search: (%s, %s, %s, %s)',
+                 scale_mode, mvi_mode, outlier_mode, classifier)
+
+        if classifier in ['MultinomialNB', 'CategoricalNB'] and scale_mode != 'minmax':
+            continue
+
+        preprocess_config.overwrite('scale_mode', scale_mode)
+        preprocess_config.overwrite('mvi_mode', mvi_mode)
+        preprocess_config.overwrite('outlier_mode', outlier_mode)
+        classifier_config.overwrite('classifier', classifier)
+
+        # perform preprocessing
+        X, y = preprocess(main_config, preprocess_config)
+
+        # run classification model
+        run_model(X, y, main_config, classifier_config)
 
 
 if __name__ == '__main__':

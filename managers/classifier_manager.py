@@ -8,6 +8,7 @@ Description:
 To-do:
 """
 # standard imports
+import ast
 import logging as log
 import os
 import sys
@@ -25,7 +26,6 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 
 # local imports
-from utils.config_parser import ConfigParser
 from utils.utilities import check_str_type
 
 
@@ -34,7 +34,7 @@ class ClassifierManager:
     All about the classifiers.
     """
 
-    def __init__(self, configfile):
+    def __init__(self, configparser):
         """
         Class initializer.
 
@@ -42,8 +42,7 @@ class ClassifierManager:
             configfile: (str) Configuration file path.
         """
         # load config parser
-        self.configfile = configfile
-        self.configparser = ConfigParser(configfile)
+        self.configparser = configparser
 
         # read which classifier we are using
         self.classifier = self.configparser.get_str('classifier')
@@ -71,9 +70,9 @@ class ClassifierManager:
         elif self.classifier.lower() == 'randomforestclassifier':
             self.clf = RandomForestClassifier(
                 n_jobs=-1, **self.parameters if not self.mode == 'grid' else {})
-        elif self.classifier.lower() == 'mlp':
-            self.clf = MLPClassifier(**self.parameters if not self.mode == 'grid' else {})
-            # self.clf = MLPClassifier(hidden_layer_sizes=(50, 50, 50), alpha=0.01, max_iter=1000)
+        elif self.classifier.lower() == 'mlpclassifier':
+            self.clf = MLPClassifier(
+                early_stopping=True, **self.parameters if not self.mode == 'grid' else {})
         else:
             raise ValueError('Invalid classifier: {}'.format(self.classifier))
 
@@ -92,6 +91,14 @@ class ClassifierManager:
 
             for key, value in params_dict.items():
                 dtype = check_str_type(value[0])
+
+                # do special parsing for MLPClassifier
+                if key == 'hidden_layer_sizes':
+                    hidden_layer_sizes = self.configparser.get_str(
+                        'hidden_layer_sizes', 'MLPClassifier_Best')
+
+                    parameters[key] = ast.literal_eval(hidden_layer_sizes)
+                    continue
 
                 if dtype == str:
                     parameters[key] = value[0]
@@ -138,6 +145,18 @@ class ClassifierManager:
                 increment = mapping(params_dict['{}_increment'.format(param)][0])
 
                 parameters[param] = np.arange(start, end, increment).tolist()
+
+            # do special parsing for MLPClassifier
+            if self.classifier == 'MLPClassifier':
+                hidden_layer_sizes = []
+
+                for num_hidden_layers in parameters['num_hidden_layers']:
+                    hidden_layer_sizes.extend(
+                        list((i,)*num_hidden_layers for i in parameters['num_hidden_nodes']))
+
+                del parameters['num_hidden_nodes']
+                del parameters['num_hidden_layers']
+                parameters['hidden_layer_sizes'] = hidden_layer_sizes
         else:
             mode = 'normal'
 

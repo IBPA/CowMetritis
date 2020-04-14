@@ -48,6 +48,9 @@ class ConfigParser:
         """
         self.config[section] = entry
 
+    def overwrite(self, key, value, section='DEFAULT'):
+        self.config[section][key] = value
+
     def write(self, filepath):
         """
         Write configuration.
