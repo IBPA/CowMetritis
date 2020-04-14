@@ -277,7 +277,7 @@ class PreprocessManager:
 
         return X_inliers, y_inliers
 
-    def feature_selection(self, X, y, save_to):
+    def feature_selection(self, X, y, save_to=None):
         if self.rfe_classifier.lower() == 'randomforestclassifier':
             clf = RandomForestClassifier(random_state=self.random_state)
         else:
@@ -295,10 +295,11 @@ class PreprocessManager:
         log.info('Dropped features: %s', dropped_features)
         log.info('Feature ranking: %s', selector.ranking_)
 
-        plot(
-            range(1, len(selector.grid_scores_) + 1),
-            selector.grid_scores_,
-            save_to,
-            'feature_selection.png')
+        if save_to:
+            plot(
+                range(1, len(selector.grid_scores_) + 1),
+                selector.grid_scores_,
+                save_to,
+                'feature_selection.png')
 
         return X[selected_features.tolist()]

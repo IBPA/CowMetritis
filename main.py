@@ -47,6 +47,9 @@ def parse_argument():
 
 
 def preprocess(main_config, preprocess_config):
+    # do we do visualization?
+    visualization = main_config.get_bool('visualization')
+
     # init object for preprocessing
     pmanager = PreprocessManager(preprocess_config)
 
@@ -55,7 +58,8 @@ def preprocess(main_config, preprocess_config):
     X, y = pmanager.get_X_and_y(pd_data)
 
     # visualize missing values
-    visualize_missing_values(X, main_config.get_str('visualization_dir'))
+    if visualization:
+        visualize_missing_values(X, main_config.get_str('visualization_dir'))
 
     # scale features
     X = pmanager.scale_features(X)
@@ -68,20 +72,26 @@ def preprocess(main_config, preprocess_config):
 
     # perform & visualize dimensionality reduction
     X_dr, reduction_mode = pmanager.reduce_dimension(X)
-    plot_projection(
-        X_dr, y,
-        reduction_mode,
-        main_config.get_str('visualization_dir'),
-        outlier_index)
+
+    if visualization:
+        plot_projection(
+            X_dr, y,
+            reduction_mode,
+            main_config.get_str('visualization_dir'),
+            outlier_index)
 
     # remove outliers
     X, y = pmanager.remove_outlier(X, y, outlier_index)
 
     # plot scatter matrix of the data
-    plot_scatter_matrix(X, y, main_config.get_str('visualization_dir'))
+    if visualization:
+        plot_scatter_matrix(X, y, main_config.get_str('visualization_dir'))
 
     # do feature selection
-    X = pmanager.feature_selection(X, y, main_config.get_str('visualization_dir'))
+    if visualization:
+        X = pmanager.feature_selection(X, y, main_config.get_str('visualization_dir'))
+    else:
+        X = pmanager.feature_selection(X, y)
 
     return X, y
 
@@ -161,9 +171,15 @@ def main():
     classifier_best_preprocessing_accuracy_dict = {classifier: None for classifier in classifiers}
     all_combinations = [scale_modes, mvi_modes, outlier_modes, classifiers]
 
-    for scale_mode, mvi_mode, outlier_mode, classifier in list(itertools.product(*all_combinations)):
-        log.info('Running grid search: (%s, %s, %s, %s)',
-                 scale_mode, mvi_mode, outlier_mode, classifier)
+    for combination in list(itertools.product(*all_combinations)):
+        # unpack the tuple
+        scale_mode = combination[0]
+        mvi_mode = combination[1]
+        outlier_mode = combination[2]
+        classifier = combination[3]
+
+        combination_str_joined = ', '.join(list(combination))
+        log.info('Running grid search: (%s)', combination_str_joined)
 
         if classifier in ['MultinomialNB', 'CategoricalNB'] and scale_mode != 'minmax':
             log.info('Skipping this combination...')
@@ -184,16 +200,20 @@ def main():
         # update the best preprocessing combination
         if classifier_f1_dict[classifier] < f1:
             classifier_f1_dict[classifier] = f1
-            classifier_best_preprocessing_f1_dict[classifier] = ', '.join([scale_mode, mvi_mode, outlier_mode, classifier])
+            classifier_best_preprocessing_f1_dict[classifier] = combination_str_joined
 
         if classifier_accuracy_dict[classifier] < accuracy:
             classifier_accuracy_dict[classifier] = accuracy
-            classifier_best_preprocessing_accuracy_dict[classifier] = ', '.join([scale_mode, mvi_mode, outlier_mode, classifier])
+            classifier_best_preprocessing_accuracy_dict[classifier] = combination_str_joined
 
-    log.info('Best F1 score for each classifier: %s', classifier_f1_dict)
-    log.info('Best accuracy score for each classifier: %s', classifier_accuracy_dict)
-    log.info('Preprocessing combination of the best F1 score for each classifier: %s', classifier_best_preprocessing_f1_dict)
-    log.info('Preprocessing combination of the best accuracy score for each classifier: %s', classifier_best_preprocessing_accuracy_dict)
+    log.info('Best F1 score for each classifier: %s',
+             classifier_f1_dict)
+    log.info('Best accuracy score for each classifier: %s',
+             classifier_accuracy_dict)
+    log.info('Preprocessing combination of the best F1 score for each classifier: %s',
+             classifier_best_preprocessing_f1_dict)
+    log.info('Preprocessing combination of the best accuracy score for each classifier: %s',
+             classifier_best_preprocessing_accuracy_dict)
 
 
 if __name__ == '__main__':
