@@ -9,6 +9,13 @@ To-do:
 """
 # standard imports
 import logging as log
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(__file__))
+
+# local imports
+from utilities import backup_remove_original
 
 
 def set_logging(log_file=None, log_level=log.DEBUG):
@@ -28,6 +35,9 @@ def set_logging(log_file=None, log_level=log.DEBUG):
 
     # create and set file handler if requested
     if log_file:
+        if os.path.exists(log_file):
+            backup_remove_original(log_file)
+
         file_handler = log.FileHandler(log_file)
         file_handler.setLevel(log_level)
         file_handler.setFormatter(formatter)

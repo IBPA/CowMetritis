@@ -41,28 +41,10 @@ def isolation_forest(pd_data, random_state=None):
     Returns:
         (list) False for outliers and True for inliers.
     """
-    clf = IsolationForest(n_jobs=-1, random_state=random_state).fit(pd_data)
+    clf = IsolationForest(n_jobs=-1, contamination=0.05, random_state=random_state).fit(pd_data)
     outliers = convert_index_2_bool(clf.predict(pd_data).tolist())
 
     log.debug('Number of outliers detected using Isolation Forest: %d', outliers.count(False))
-
-    return outliers
-
-
-def one_class_svm(pd_data):
-    """
-    Detect outliers using the One Class SVM.
-
-    Inputs:
-        pd_data: (DataFrame) Input data.
-
-    Returns:
-        (list) False for outliers and True for inliers.
-    """
-    clf = OneClassSVM(gamma='auto').fit(pd_data)
-    outliers = convert_index_2_bool(clf.predict(pd_data).tolist())
-
-    log.debug('Number of outliers detected using One Class SVM: %d', outliers.count(False))
 
     return outliers
 

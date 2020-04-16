@@ -20,7 +20,7 @@ ID: (numeric) Unique identification number of the animal.
 DIMd0: (numeric) Days in milk at the diagnosis of metritis. Day in milk start when a cow has a parturition and initiates a lactation. Metritis generally will occur within the first two weeks after giving birth.
 TRT: (string, categorical) Treated with antibiotic or not.
 	- CEF: Antibiotic group
-	- CON: Non treated g3roup
+	- CON: Non treated group
 D0month: (numeric, categorical) Month of the metritis diagnosis.
 Season: (string, categorical) Season of the metritis diagnosis.
 	- cool: Metritis was diagnosed between September and May

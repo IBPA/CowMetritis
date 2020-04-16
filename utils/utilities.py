@@ -9,6 +9,8 @@ To-do:
 """
 # standard imports
 import logging as log
+import os
+from shutil import copyfile
 
 # third party imports
 import numpy as np
@@ -33,8 +35,9 @@ def get_results_of_search(results, report_score_using='f1', scoring=['f1', 'aver
 
             if (report_score_using == score) and (idx == 1):
                 best_params = results['params'][run]
+                best_score = results['mean_test_{}'.format(score)][run]
 
-    return best_params
+    return best_params, best_score
 
 
 def str_is_integer(s):
@@ -60,3 +63,13 @@ def check_str_type(s):
         return float
     else:
         return str
+
+
+def create_backup(original, backup_extension='.bak'):
+    backup_filename = original + backup_extension
+    copyfile(original, backup_filename)
+
+
+def backup_remove_original(original, backup_extension='.bak'):
+    create_backup(original, backup_extension)
+    os.remove(original)

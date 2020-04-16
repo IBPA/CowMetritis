@@ -24,6 +24,8 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.dummy import DummyClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from imblearn.over_sampling import SMOTE
+from imblearn.pipeline import Pipeline
 
 # local imports
 from utils.utilities import check_str_type
@@ -51,30 +53,43 @@ class ClassifierManager:
         self.mode, self.parameters = self._parse_param()
 
         # assign appropriate classifier
+        self.clf = self._build_pipeline()
+
+    def _build_pipeline(self):
+        # assign appropriate classifier
         if self.classifier.lower() == 'dummyclassifier':
-            self.clf = DummyClassifier(strategy='most_frequent')
+            clf = DummyClassifier(strategy='most_frequent')
         elif self.classifier.lower() == 'decisiontreeclassifier':
-            self.clf = DecisionTreeClassifier(
+            clf = DecisionTreeClassifier(
                 **self.parameters if not self.mode == 'grid' else {})
         elif self.classifier.lower() == 'gaussiannb':
-            self.clf = GaussianNB()
+            clf = GaussianNB()
         elif self.classifier.lower() == 'multinomialnb':
-            self.clf = MultinomialNB()
+            clf = MultinomialNB()
         elif self.classifier.lower() == 'categoricalnb':
-            self.clf = CategoricalNB()
+            clf = CategoricalNB()
         elif self.classifier.lower() == 'svc':
-            self.clf = SVC(**self.parameters)
+            clf = SVC(probability=True, **self.parameters)
         elif self.classifier.lower() == 'adaboostclassifier':
-            self.clf = AdaBoostClassifier(
+            clf = AdaBoostClassifier(
                 **self.parameters if not self.mode == 'grid' else {})
         elif self.classifier.lower() == 'randomforestclassifier':
-            self.clf = RandomForestClassifier(
+            clf = RandomForestClassifier(
                 n_jobs=-1, **self.parameters if not self.mode == 'grid' else {})
         elif self.classifier.lower() == 'mlpclassifier':
-            self.clf = MLPClassifier(
+            clf = MLPClassifier(
                 early_stopping=True, **self.parameters if not self.mode == 'grid' else {})
         else:
             raise ValueError('Invalid classifier: {}'.format(self.classifier))
+
+        log.info('Selected classifier: %s', self.classifier)
+        log.debug('Classifier info: %s', clf)
+
+        if self.configparser.get_bool('SMOTE'):
+            smote = SMOTE(sampling_strategy='minority')
+            clf = Pipeline([('SMOTE', smote), (self.classifier, clf)])
+
+        return clf
 
     def _parse_param(self):
         sections = self.configparser.sections()
@@ -88,6 +103,7 @@ class ClassifierManager:
 
             params_dict = self.configparser.get_section_as_dict(section=best_result_section)
             del params_dict['classifier']
+            del params_dict['SMOTE']
 
             for key, value in params_dict.items():
                 dtype = check_str_type(value[0])
@@ -113,6 +129,7 @@ class ClassifierManager:
 
             params_dict = self.configparser.get_section_as_dict(section=grid_search_section)
             del params_dict['classifier']
+            del params_dict['SMOTE']
 
             # get parameter names
             keys = params_dict.keys()
@@ -159,6 +176,7 @@ class ClassifierManager:
                 parameters['hidden_layer_sizes'] = hidden_layer_sizes
         else:
             mode = 'normal'
+            parameters = {}
 
         log.debug('Classifier mode: %s', mode)
         log.debug('Parameters for \'%s\': %s', self.classifier, parameters)
@@ -166,17 +184,25 @@ class ClassifierManager:
         return mode, parameters
 
     def write_grid_search_results(self, best_params, save_to):
-        assert self.mode == 'grid'
+        if best_params:
+            if self.configparser.get_bool('SMOTE'):
+                best_params = {k.replace('{}__'.format(self.classifier), ''): v
+                               for k, v in best_params.items()}
 
-        section = '{}_Best'.format(self.classifier)
-        self.configparser.append(section, best_params)
+            section = '{}_Best'.format(self.classifier)
+            self.configparser.append(section, best_params)
+
         self.configparser.write(save_to)
 
     def get_mode(self):
         return self.mode
 
     def get_params(self):
-        return self.parameters
+        if self.configparser.get_bool('SMOTE'):
+            return {'{}__{}'.format(self.classifier, k): v
+                    for k, v in self.parameters.items()}
+        else:
+            return self.parameters
 
     def get_classifier(self):
         return self.clf

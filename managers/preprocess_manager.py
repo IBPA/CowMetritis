@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 
 # third party imports
+import numpy as np
 import pandas as pd
 from sklearn import preprocessing
 from sklearn.decomposition import PCA, SparsePCA
@@ -23,11 +24,16 @@ from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import RFECV
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import f1_score
+from imblearn.over_sampling import SMOTE
+from imblearn.pipeline import Pipeline
+import matplotlib.pyplot as plt
 
 # local imports
 from missing_value_imputer import knn_imputer, iterative_imputer, missforest_imputer
-from outlier_detector import isolation_forest, one_class_svm, local_outlier_factor
-from utils.visualization import plot
+from outlier_detector import isolation_forest, local_outlier_factor
+from utils.visualization import plot_feature_importance, plot_feature_elimination
 
 
 class PreprocessManager:
@@ -35,7 +41,7 @@ class PreprocessManager:
     Preprocess the input data.
     """
 
-    def __init__(self, configparser):
+    def __init__(self, configparser, section='DEFAULT'):
         """
         Class initializer.
 
@@ -48,12 +54,14 @@ class PreprocessManager:
         self.dependent_col = configparser.get_str('dependent_column')
         self.string_cols = configparser.get_str_list('string_columns')
         self.category_cols = configparser.get_str_list('category_columns')
-        self.scale_mode = configparser.get_str('scale_mode')
-        self.mvi_mode = configparser.get_str('mvi_mode')
-        self.outlier_mode = configparser.get_str('outlier_mode')
+        self.scale_mode = configparser.get_str('scale_mode', section=section)
+        self.mvi_mode = configparser.get_str('mvi_mode', section=section)
+        self.outlier_mode = configparser.get_str('outlier_mode', section=section)
         self.dimension_reduction_mode = configparser.get_str('dimension_reduction_mode')
         self.projection_dim = configparser.get_int('projection_dimension')
         self.rfe_classifier = configparser.get_str('rfe_classifier')
+        self.rfe_num_runs = configparser.get_int('rfe_num_runs')
+        self.rfe_smote = configparser.get_bool('rfe_smote')
         self.random_state = configparser.get_int('random_state')
 
         # initialize label lookup dictionary
@@ -247,8 +255,6 @@ class PreprocessManager:
         """
         if self.outlier_mode.lower() == 'isolation_forest':
             index = isolation_forest(X, self.random_state)
-        elif self.outlier_mode.lower() == 'one_class_svm':
-            index = one_class_svm(X)
         elif self.outlier_mode.lower() == 'lof':
             index = local_outlier_factor(X)
         else:
@@ -279,27 +285,66 @@ class PreprocessManager:
 
     def feature_selection(self, X, y, save_to=None):
         if self.rfe_classifier.lower() == 'randomforestclassifier':
-            clf = RandomForestClassifier(random_state=self.random_state)
+            rfe_clf = RandomForestClassifier(n_estimators=250)
         else:
             raise ValueError('Invalid classifier: {}'.format(self.rfe_classifier))
 
-        selector = RFECV(clf, step=1, min_features_to_select=1, scoring='f1', n_jobs=-1)
-        selector = selector.fit(X, y)
+        if self.rfe_smote:
+            log.info('Doing SMOTE over-sampling before RFE')
+            smote = SMOTE(sampling_strategy='minority')
+            clf = Pipeline([('SMOTE', smote), (self.rfe_classifier, rfe_clf)])
+        else:
+            clf = rfe_clf
 
-        features = X.columns.to_numpy()
-        selected_features = features[selector.support_]
-        dropped_features = features[~selector.support_]
+        importances = ()
+        for i in range(self.rfe_num_runs):
+            clf.fit(X, y)
+            importances = importances + (rfe_clf.feature_importances_,)
 
-        log.info('Number of features selected: %d', selector.n_features_)
-        log.info('Selected features: %s', selected_features)
-        log.info('Dropped features: %s', dropped_features)
-        log.info('Feature ranking: %s', selector.ranking_)
+        importances = np.vstack(importances)
+        importances_avg = np.mean(importances, axis=0)
+        importances_std = np.std(importances, axis=0)
+        indices = np.argsort(importances_avg)[::-1]
+        ranking = [list(X)[idx] for idx in indices]
+
+        # log the feature ranking
+        log.debug('Feature ranking:')
+        for f in range(X.shape[1]):
+            log.debug('%d. %s (%f)', f+1, ranking[f], importances_avg[indices[f]])
+
+        # plot feature importance if requested
+        if save_to:
+            fig = plot_feature_importance(X, importances_avg, importances_std, indices, ranking, save_to)
+
+        ranking_copy = ranking.copy()
+        f1_list = []
+        f1_best = 0
+        for i in range(len(ranking)):
+            X_filtered = X[ranking_copy]
+
+            skf = StratifiedKFold(shuffle=True, random_state=self.random_state)
+            f1 = []
+            for train_index, test_index in skf.split(X_filtered, y):
+                X_train, X_test = X_filtered.iloc[train_index, :], X_filtered.iloc[test_index, :]
+                y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+
+                clf.fit(X_train, y_train)
+                f1.append(f1_score(y_test, clf.predict(X_test)))
+
+            f1_avg = np.mean(f1)
+            f1_list.append(f1_avg)
+
+            if f1_best < f1_avg:
+                selected_features = ranking_copy.copy()
+                f1_best = f1_avg
+
+            log.info('F1 score using top %d features: %f', len(ranking_copy), f1_avg)
+
+            ranking_copy.pop()
+
+        log.info('Best selected features: %s', selected_features)
 
         if save_to:
-            plot(
-                range(1, len(selector.grid_scores_) + 1),
-                selector.grid_scores_,
-                save_to,
-                'feature_selection.png')
+            plot_feature_elimination(ranking, f1_list[::-1], save_to)
 
-        return X[selected_features.tolist()]
+        return X[selected_features]

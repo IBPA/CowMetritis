@@ -1,9 +1,10 @@
-ignore everything in this directory
+# ignore everything in this directory
 *
 
-except for these files and directories
+# except for these files and directories
 !.gitignore
-visualization/*
+!visualization/*
+!log_archive/*
 
-even if they're in subdirectories
+# even if they're in subdirectories
 !*/
