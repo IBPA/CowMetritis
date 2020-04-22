@@ -9,26 +9,24 @@
 
 4. Attribute information
 
-|                |  categorical  |  non-categorical  |
-| -------------- | :-----------: | :---------------: |
-| **numeric**    | 8             | 10                |
-| **string**     | 6             | 0                 |
-
 ```
-Dairy: (string, categorical) Name of the farm.
+Dairy: (categorical) Name of the farm.
+	- ADC: 0
+	- DRU: 1
+	- NFH: 2
 ID: (numeric) Unique identification number of the animal.
 DIMd0: (numeric) Days in milk at the diagnosis of metritis. Day in milk start when a cow has a parturition and initiates a lactation. Metritis generally will occur within the first two weeks after giving birth.
-TRT: (string, categorical) Treated with antibiotic or not.
-	- CEF: Antibiotic group
-	- CON: Non treated group
+TRT: (categorical) Treated with antibiotic or not.
+	- 1: Treated group
+	- 0: Non treated group
 D0month: (numeric, categorical) Month of the metritis diagnosis.
-Season: (string, categorical) Season of the metritis diagnosis.
-	- cool: Metritis was diagnosed between September and May
-	- hot: Metritis was diagnosed between June and August
+Season: (categorical) Season of the metritis diagnosis.
+	- 0: Cool. Metritis was diagnosed between September and May
+	- 1: Hot. Metritis was diagnosed between June and August
 Lact: (numeric) How many cycles of lactation cow was having when the information was collected.
-Parity: (string, categorical) Number of birth(s) during the lifetime of the cow. This reflects all previous birth events of the cow including the most recent birth that happened few days before the metritis diagnosis.
-	- P: Primiparous - one birth during the lifetime
-	- M: Multiparous - more than one birth during the lifetime
+Parity: (categorical) Number of birth(s) during the lifetime of the cow. This reflects all previous birth events of the cow including the most recent birth that happened few days before the metritis diagnosis.
+	- 1: Primiparous - one birth during the lifetime
+	- 2: Multiparous - more than one birth during the lifetime
 CalvDif: (numeric, categorical) How hard was the calving event.
 	- 1: Unassisted
 	- 2: Easy pull / slight problem. One person (can be using chains and handles) but without the use of ropes / pulley.
@@ -38,19 +36,19 @@ CalvDif: (numeric, categorical) How hard was the calving event.
 Dyst: (numeric, categorical) Occurrence of dystocia.
 	- 0: No dystocia. Unassisted calving. CalvDif = 1.
 	- 1: Dystocia. Assisted calving. CalvDif = 2~5.
-CalfInfo: (string, categorical) Gender of the calf.
-	- M: Male
-	- F: Female
-	- T: Twins (i.e. (male, female), (male, male), (female, female))
-	- S: Stillbirth
+CalfInfo: (categorical) Gender of the calf.
+	- 1: Male
+	- 2: Female
+	- 3: Twins (i.e. (male, female), (male, male), (female, female))
+	- 4: Stillbirth
 RFM: (numeric, categorical) Retained fetal membranes. Whether if the cow had failure to expel fetal membranes within 12 hours after parturition.
 	- 1: Yes
 	- 0: No
 BCS5: (numeric) Body condition score at 5 days in milk. Visual evaluation of body fat reserves using a 5-point scale with 0.25-point increments where 1=very thin 5=very fat.
-BCS5C: (string, categorical) Categorical data for body condition score at 5 days in milk.
-	- Low: 1 ≤ BCS5 ≤ 3
-	- Mod: 3 < BCS5 < 3.75
-	- High: 3.75 ≤ BCS5 ≤ 5
+BCS5C: (categorical) Categorical data for body condition score at 5 days in milk.
+	- 0: 1 ≤ BCS5 ≤ 3
+	- 1: 3 < BCS5 < 3.75
+	- 2: 3.75 ≤ BCS5 ≤ 5
 VLS: (numeric, categorical) Vaginal laceration due to birth (calving).
 	- 0: No
 	- 1: Yes and < 2 cm

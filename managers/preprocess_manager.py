@@ -18,22 +18,16 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 # third party imports
 import numpy as np
 import pandas as pd
-from sklearn import preprocessing
 from sklearn.decomposition import PCA, SparsePCA
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_selection import RFECV
-from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import f1_score
-from imblearn.over_sampling import SMOTE
-from imblearn.pipeline import Pipeline
-import matplotlib.pyplot as plt
+from scipy.stats import pearsonr
 
 # local imports
 from missing_value_imputer import knn_imputer, iterative_imputer, missforest_imputer
 from outlier_detector import isolation_forest, local_outlier_factor
-from utils.visualization import plot_feature_importance, plot_feature_elimination
+from utils.visualization import plot_pairwise_corr
+from utils.utilities import save_pkl, load_pkl
 
 
 class PreprocessManager:
@@ -41,7 +35,7 @@ class PreprocessManager:
     Preprocess the input data.
     """
 
-    def __init__(self, configparser, section='DEFAULT'):
+    def __init__(self, configparser, classifier='DEFAULT'):
         """
         Class initializer.
 
@@ -52,78 +46,23 @@ class PreprocessManager:
         self.input_file = configparser.get_str('input_data')
         self.independent_cols = configparser.get_str_list('independent_columns')
         self.dependent_col = configparser.get_str('dependent_column')
-        self.string_cols = configparser.get_str_list('string_columns')
         self.category_cols = configparser.get_str_list('category_columns')
-        self.scale_mode = configparser.get_str('scale_mode', section=section)
-        self.mvi_mode = configparser.get_str('mvi_mode', section=section)
-        self.outlier_mode = configparser.get_str('outlier_mode', section=section)
+        self.scale_mode = configparser.get_str('scale_mode', section=classifier)
+        self.mvi_mode = configparser.get_str('mvi_mode', section=classifier)
+        self.outlier_mode = configparser.get_str('outlier_mode', section=classifier)
         self.dimension_reduction_mode = configparser.get_str('dimension_reduction_mode')
         self.projection_dim = configparser.get_int('projection_dimension')
-        self.rfe_classifier = configparser.get_str('rfe_classifier')
-        self.rfe_num_runs = configparser.get_int('rfe_num_runs')
-        self.rfe_smote = configparser.get_bool('rfe_smote')
         self.random_state = configparser.get_int('random_state')
+
+        if configparser.get_str('model_dir'):
+            self.model_path = os.path.join(configparser.get_str('model_dir'), classifier)
+        else:
+            self.model_path = None
 
         # initialize label lookup dictionary
         self.category_lookup = {}
 
-    def encode_category(self, pd_data):
-        """
-        Encode the categorical columns of the input data.
-
-        Inputs:
-            pd_data: (DataFrame) Data that needs category encoding.
-
-        Returns:
-            pd_encoded: (DataFrame) Data with categories encoded.
-        """
-        pd_encoded = pd_data.copy()
-
-        # we only encode columns with string data.
-        # integer categrical columns are not encoded.
-        if not self.string_cols:
-            log.info('No columns to encode.')
-            return pd_data
-
-        for column in self.string_cols:
-            le = preprocessing.LabelEncoder()
-            le.fit(pd_encoded[column].tolist())
-
-            log.info('Encoding label for column \'%s\': %s', column, list(le.classes_))
-            pd_encoded[column] = le.transform(pd_encoded[column].tolist())
-
-            # store the encoder as dictionary for future decoding
-            self.category_lookup[column] = le
-
-        return pd_encoded
-
-    def decode_category(self, pd_data):
-        """
-        Decode the categorical columns of the input data.
-
-        Inputs:
-            pd_data: (DataFrame) Data that needs category decoding.
-
-        Returns:
-            pd_decoded: (DataFrame) Data with categories decoded.
-        """
-        pd_decoded = pd_data.copy()
-
-        # we only decode columns with string data.
-        # integer categrical columns are not decoded.
-        if not self.string_cols:
-            log.info('No columns to decode.')
-            return pd_data
-
-        for column in self.string_cols:
-            le = self.category_lookup[column]
-
-            log.info('Decoding label for column \'%s\': %s', column, list(le.classes_))
-            pd_decoded[column] = le.inverse_transform(pd_decoded[column].astype(int).tolist())
-
-        return pd_decoded
-
-    def read_data(self, encode=True):
+    def read_data(self):
         """
         Read data.
 
@@ -131,14 +70,9 @@ class PreprocessManager:
             encode: (bool, optional) If True, encode the categorical columns.
 
         Returns:
-            pd_data: (DataFrame) Read data.
+            (DataFrame) Read data.
         """
-        pd_data = pd.read_csv(self.input_file, na_values='.', index_col='ID')
-
-        if encode:
-            return self.encode_category(pd_data)
-        else:
-            return pd_data
+        return pd.read_csv(self.input_file, na_values='.', index_col='ID')
 
     def get_X_and_y(self, pd_data):
         """
@@ -156,7 +90,19 @@ class PreprocessManager:
 
         return X, y
 
-    def scale_features(self, X):
+    def get_X(self, pd_data):
+        """
+        Extract independent variables.
+
+        Inputs:
+            pd_data: (DataFrame) Input raw data.
+
+        Returns:
+            (DataFrame) Independent variables.
+        """
+        return pd_data[self.independent_cols]
+
+    def scale_features(self, X, final_model=False, pkl_filename='scaler.pkl'):
         """
         Scale the independent variables.
 
@@ -166,17 +112,23 @@ class PreprocessManager:
         Returns:
             pd_new_X: (DataFrame) Scaled independent variables.
         """
-        if self.scale_mode.lower() == 'standard':
-            scaler = StandardScaler()
-        elif self.scale_mode.lower() == 'minmax':
-            scaler = MinMaxScaler()
-        elif self.scale_mode.lower() == 'robust':
-            scaler = RobustScaler()
+        if final_model:
+            scaler = load_pkl(os.path.join(self.model_path, pkl_filename))
         else:
-            raise ValueError('Invalid scaling mode: {}'.format(self.scale_mode))
+            if self.scale_mode.lower() == 'standard':
+                scaler = StandardScaler().fit(X)
+            elif self.scale_mode.lower() == 'minmax':
+                scaler = MinMaxScaler().fit(X)
+            elif self.scale_mode.lower() == 'robust':
+                scaler = RobustScaler().fit(X)
+            else:
+                raise ValueError('Invalid scaling mode: {}'.format(self.scale_mode))
+
+            if self.model_path:
+                save_pkl(scaler, os.path.join(self.model_path, pkl_filename))
 
         pd_new_X = pd.DataFrame(
-            scaler.fit_transform(X),
+            scaler.transform(X),
             index=X.index,
             columns=X.columns)
 
@@ -283,68 +235,29 @@ class PreprocessManager:
 
         return X_inliers, y_inliers
 
-    def feature_selection(self, X, y, save_to=None):
-        if self.rfe_classifier.lower() == 'randomforestclassifier':
-            rfe_clf = RandomForestClassifier(n_estimators=250)
-        else:
-            raise ValueError('Invalid classifier: {}'.format(self.rfe_classifier))
+    def feature_analysis(self, X, y, save_to=None):
+        """
+        Do feature analysis like Pearson correlation.
 
-        if self.rfe_smote:
-            log.info('Doing SMOTE over-sampling before RFE')
-            smote = SMOTE(sampling_strategy='minority')
-            clf = Pipeline([('SMOTE', smote), (self.rfe_classifier, rfe_clf)])
-        else:
-            clf = rfe_clf
+        Inputs:
+            X: (DataFrame) Features.
+            y: (DataFrame) Dependent variable.
+            save_to: (str) If not None, save the pairwise correlation figure to here.
+        """
+        if save_to:
+            plot_pairwise_corr(pd.concat([X, y], axis=1).corr(), save_to)
 
-        importances = ()
-        for i in range(self.rfe_num_runs):
-            clf.fit(X, y)
-            importances = importances + (rfe_clf.feature_importances_,)
+        # pairwise pearson correlation
+        pearson_result = [pearsonr(X[feature], y) for feature in list(X)]
 
-        importances = np.vstack(importances)
-        importances_avg = np.mean(importances, axis=0)
-        importances_std = np.std(importances, axis=0)
-        indices = np.argsort(importances_avg)[::-1]
+        scores = list(zip(*pearson_result))[0]
+        scores_abs = [abs(s) for s in scores]
+        pvalues = list(zip(*pearson_result))[1]
+
+        indices = np.argsort(scores_abs)[::-1]
         ranking = [list(X)[idx] for idx in indices]
 
         # log the feature ranking
-        log.debug('Feature ranking:')
+        log.debug('Pairwise feature correlation ranking:')
         for f in range(X.shape[1]):
-            log.debug('%d. %s (%f)', f+1, ranking[f], importances_avg[indices[f]])
-
-        # plot feature importance if requested
-        if save_to:
-            fig = plot_feature_importance(X, importances_avg, importances_std, indices, ranking, save_to)
-
-        ranking_copy = ranking.copy()
-        f1_list = []
-        f1_best = 0
-        for i in range(len(ranking)):
-            X_filtered = X[ranking_copy]
-
-            skf = StratifiedKFold(shuffle=True, random_state=self.random_state)
-            f1 = []
-            for train_index, test_index in skf.split(X_filtered, y):
-                X_train, X_test = X_filtered.iloc[train_index, :], X_filtered.iloc[test_index, :]
-                y_train, y_test = y.iloc[train_index], y.iloc[test_index]
-
-                clf.fit(X_train, y_train)
-                f1.append(f1_score(y_test, clf.predict(X_test)))
-
-            f1_avg = np.mean(f1)
-            f1_list.append(f1_avg)
-
-            if f1_best < f1_avg:
-                selected_features = ranking_copy.copy()
-                f1_best = f1_avg
-
-            log.info('F1 score using top %d features: %f', len(ranking_copy), f1_avg)
-
-            ranking_copy.pop()
-
-        log.info('Best selected features: %s', selected_features)
-
-        if save_to:
-            plot_feature_elimination(ranking, f1_list[::-1], save_to)
-
-        return X[selected_features]
+            log.debug('%d. %s: %f (%f)', f+1, ranking[f], scores[indices[f]], pvalues[indices[f]])

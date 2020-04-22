@@ -10,6 +10,7 @@ To-do:
 # standard imports
 import argparse
 import logging as log
+import os
 import sys
 
 # third party imports
@@ -53,10 +54,6 @@ def main():
     main_config = ConfigParser(args.config_file)
     set_logging(log_file=main_config.get_str('log_file'))
 
-    # load other config files
-    preprocess_config = ConfigParser(main_config.get_str('preprocess_config'))
-    classifier_config = ConfigParser(main_config.get_str('classifier_config'))
-
     # initialize model manager object
     model_manager = ModelManager()
 
@@ -67,14 +64,20 @@ def main():
     classifiers_ys = {}
     for classifier in classifiers:
         log.info('Running model for classifier \'%s\'', classifier)
+
+        # load config parsers
+        preprocess_config = ConfigParser(main_config.get_str('preprocess_config'))
+        classifier_config = ConfigParser(main_config.get_str('classifier_config'))
+
         # perform preprocessing
         X, y = model_manager.preprocess(preprocess_config, section=classifier)
 
         # run classification model
         classifier_config.overwrite('classifier', classifier)
 
-        score_avg, score_std, ys = model_manager.run_model_cv(
-            X, y, 'f1', classifier_config)
+        X = model_manager.feature_selector(X, y, classifier_config)
+
+        score_avg, score_std, ys = model_manager.run_model_cv(X, y, 'f1', classifier_config)
 
         classifiers_ys[classifier] = ys
 
@@ -95,9 +98,9 @@ def main():
     plt.xlabel('Recall')
     plt.ylabel('Precision')
     plt.title('PR Curve')
-    plt.legend(lines, labels, loc='lower right', prop={'size': 10})
+    plt.legend(lines, labels, loc='lower right', prop={'size': 8})
 
-    save_figure(fig, main_config.get_str('pr_curve'))
+    save_figure(fig, os.path.join(main_config.get_str('visualization_dir'), 'pr_curve.png'))
 
     # plot ROC curve
     fig = plt.figure()
@@ -113,15 +116,15 @@ def main():
         lines.append(line)
         labels.append(label)
 
-    plt.plot([0, 1], [0, 1], color='k', linestyle='--')
+    # plt.plot([0, 1], [0, 1], color='k', linestyle='--')
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
     plt.title('ROC Curve')
-    plt.legend(lines, labels, loc='lower right', prop={'size': 10})
+    plt.legend(lines, labels, loc='lower right', prop={'size': 8})
 
-    save_figure(fig, main_config.get_str('roc_curve'))
+    save_figure(fig, os.path.join(main_config.get_str('visualization_dir'), 'roc_curve.png'))
 
 
 if __name__ == '__main__':

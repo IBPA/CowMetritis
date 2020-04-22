@@ -13,7 +13,6 @@ import logging as log
 # third party imports
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
-from sklearn.svm import OneClassSVM
 
 
 def convert_index_2_bool(index):

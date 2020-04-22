@@ -3,7 +3,7 @@ Authors:
     Jason Youn - jyoun@ucdavis.edu
 
 Description:
-    Classifier manager.
+    Manager to do preprocessing and classification.
 
 To-do:
 """
@@ -21,11 +21,12 @@ import pandas as pd
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import f1_score, accuracy_score, confusion_matrix
+from mlxtend.feature_selection import SequentialFeatureSelector as SFS
 
 # local imports
 from managers.preprocess_manager import PreprocessManager
 from managers.classifier_manager import ClassifierManager
-from utils.visualization import visualize_missing_values, plot_projection, plot_scatter_matrix
+from utils.visualization import visualize_missing_values, plot_projection, plot_scatter_matrix, plot_bic_fs
 from utils.utilities import get_results_of_search
 
 
@@ -42,52 +43,103 @@ class ModelManager:
         """
         pass
 
-    def preprocess(self, preprocess_config, section='DEFAULT'):
+    def preprocess(self, preprocess_config, section='DEFAULT', final_model=False):
+        """
+        Run preprocessing (feature scaling -> missing value imputation -> outlie detection).
+
+        Inputs:
+            preprocess_config: (ConfigParser) Object containing configuration.
+            section: (str, optional) If specified, run preprocessing using the
+                classifier specific preprocessing combination.
+            final_model: (bool, optional) If True, run preprocessing for final model.
+
+        Returns:
+            X: (DataFrame) Features.
+            y: (DataFrame) Dependent variable.
+        """
         # init object for preprocessing
-        pmanager = PreprocessManager(preprocess_config, section=section)
+        pmanager = PreprocessManager(preprocess_config, classifier=section)
 
         # do we do visualization?
         visualization_dir = preprocess_config.get_str('visualization_dir')
 
         # read data and get independent / dependent variables
         pd_data = pmanager.read_data()
-        X, y = pmanager.get_X_and_y(pd_data)
+        if final_model:
+            X, y = pmanager.get_X(pd_data), None
+        else:
+            X, y = pmanager.get_X_and_y(pd_data)
 
-        # visualize missing values
-        if visualization_dir:
+            # visualize missing values
             visualize_missing_values(X, visualization_dir)
 
         # scale features
-        X = pmanager.scale_features(X)
+        X = pmanager.scale_features(X, final_model=final_model)
 
-        # impute missing value
-        X = pmanager.impute_missing_values(X)
+        if not final_model:
+            # impute missing value
+            X = pmanager.impute_missing_values(X)
 
-        # detect outliers
-        outlier_index = pmanager.detect_outlier(X)
+            # detect outliers
+            outlier_index = pmanager.detect_outlier(X)
 
-        # perform & visualize dimensionality reduction
-        X_dr, reduction_mode = pmanager.reduce_dimension(X)
-
-        if visualization_dir:
+            # perform & visualize dimensionality reduction
+            X_dr, reduction_mode = pmanager.reduce_dimension(X)
             plot_projection(X_dr, y, reduction_mode, visualization_dir, outlier_index)
 
-        # remove outliers
-        X, y = pmanager.remove_outlier(X, y, outlier_index)
+            # remove outliers
+            X, y = pmanager.remove_outlier(X, y, outlier_index)
 
-        # plot scatter matrix of the data
-        if visualization_dir:
+            # plot scatter matrix of the data
             plot_scatter_matrix(X, y, visualization_dir)
 
-        # do feature selection
-        if visualization_dir:
-            X = pmanager.feature_selection(X, y, visualization_dir)
-        else:
-            X = pmanager.feature_selection(X, y)
+            # do feature analysis
+            pmanager.feature_analysis(X, y, visualization_dir)
 
         return X, y
 
+    def feature_selector(self, X, y, classifier_config, scoring='f1'):
+        """
+        Do recursive feature selection.
+
+        Inputs:
+            X: (DataFrame) Features.
+            y: (DataFrame) Dependent variable.
+            classifier_config: (ConfigParser) Object containing
+                clasifier specific configuration.
+            scoring: (str) 'f1' | 'accuracy'
+        """
+        cmanager = ClassifierManager(classifier_config)
+
+        sfs = SFS(estimator=cmanager.get_classifier(),
+                  k_features='parsimonious',
+                  forward=False,
+                  floating=False,
+                  scoring=scoring,
+                  cv=5,
+                  n_jobs=-1,
+                  verbose=1)
+
+        sfs.fit(X, y)
+
+        cmanager.analyze_feature_selection(sfs)
+        X_selected = X[list(sfs.k_feature_names_)]
+
+        return X_selected
+
     def grid_search(self, X, y, scoring, classifier_config, updated_classifier_config):
+        """
+        Do grid search if necessary and save the best parameters.
+
+        Inputs:
+            X: (DataFrame) Features.
+            y: (DataFrame) Dependent variable.
+            scoring: (str) 'f1' | 'accuracy'
+            classifier_config: (ConfigParser) Object containing
+                clasifier specific configuration.
+            updated_classifier_config: (str) Filepath to save the
+                best parameters found by grid search to.
+        """
         cmanager = ClassifierManager(classifier_config)
 
         # perform grid searching if specified in the config file
@@ -120,7 +172,18 @@ class ModelManager:
 
         return best_score
 
-    def run_model_cv(self, X, y, scoring, classifier_config):
+    def run_model_cv(self, X, y, scoring, classifier_config, random_state=1):
+        """
+        Run k-fold CV and report the results.
+
+        Inputs:
+            X: (DataFrame) Features.
+            y: (DataFrame) Dependent variable.
+            scoring: (str) 'f1' | 'accuracy'
+            classifier_config: (ConfigParser) Object containing
+                clasifier specific configuration.
+            random_state: (int) Control reproducibility.
+        """
         cmanager = ClassifierManager(classifier_config)
 
         if cmanager.get_mode() == 'grid':
@@ -128,7 +191,7 @@ class ModelManager:
                 classifier_config.get_str('classifier')))
 
         # run best model again to get metrics
-        skf = StratifiedKFold(shuffle=True, random_state=1)
+        skf = StratifiedKFold(shuffle=True, random_state=random_state)
 
         scores = []
         y_trues = ()

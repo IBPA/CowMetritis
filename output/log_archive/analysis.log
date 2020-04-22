@@ -1,0 +1,72 @@
+2020-04-20 18:21:10,505 INFO analysis.py: Running model for classifier 'AdaBoostClassifier'
+2020-04-20 18:21:10,511 INFO preprocess_manager.py: Encoding label for column 'Dairy': ['ADC', 'DRU', 'NFH']
+2020-04-20 18:21:10,512 INFO preprocess_manager.py: Encoding label for column 'TRT': ['CEF', 'CON']
+2020-04-20 18:21:10,512 INFO preprocess_manager.py: Encoding label for column 'D0month': ['April', 'August', 'December', 'February', 'January', 'July', 'June', 'March', 'May', 'November', 'October', 'September']
+2020-04-20 18:21:10,513 INFO preprocess_manager.py: Encoding label for column 'Season': ['Cool', 'Hot']
+2020-04-20 18:21:10,513 INFO preprocess_manager.py: Encoding label for column 'Parity': ['M', 'P']
+2020-04-20 18:21:10,514 INFO preprocess_manager.py: Encoding label for column 'CalfInfo': ['F', 'M', 'S', 'T']
+2020-04-20 18:21:10,514 INFO preprocess_manager.py: Encoding label for column 'BCS5C': ['High', 'Low', 'Mod']
+2020-04-20 18:21:12,181 DEBUG outlier_detector.py: Number of outliers detected using Local Outlier Factor: 0
+2020-04-20 18:21:24,406 DEBUG preprocess_manager.py: Pairwise feature correlation ranking:
+2020-04-20 18:21:24,406 DEBUG preprocess_manager.py: 1. TRT: -0.166358 (0.000089)
+2020-04-20 18:21:24,406 DEBUG preprocess_manager.py: 2. Milkincrease9DIM: 0.155173 (0.000259)
+2020-04-20 18:21:24,406 DEBUG preprocess_manager.py: 3. DIMd0: 0.142531 (0.000802)
+2020-04-20 18:21:24,406 DEBUG preprocess_manager.py: 4. VLSC: -0.138515 (0.001127)
+2020-04-20 18:21:24,407 DEBUG preprocess_manager.py: 5. Milkincrease7DIM: 0.133043 (0.001766)
+2020-04-20 18:21:24,407 DEBUG preprocess_manager.py: 6. VLS: -0.128602 (0.002514)
+2020-04-20 18:21:24,407 DEBUG preprocess_manager.py: 7. Milkincrease5DIM: 0.108323 (0.011019)
+2020-04-20 18:21:24,407 DEBUG preprocess_manager.py: 8. Dairy: 0.100220 (0.018726)
+2020-04-20 18:21:24,407 DEBUG preprocess_manager.py: 9. Tempd0: -0.094191 (0.027184)
+2020-04-20 18:21:24,407 DEBUG preprocess_manager.py: 10. Season: 0.071944 (0.091875)
+2020-04-20 18:21:24,407 DEBUG preprocess_manager.py: 11. CalfInfo: -0.057121 (0.181012)
+2020-04-20 18:21:24,407 DEBUG preprocess_manager.py: 12. CalvDif: -0.056797 (0.183500)
+2020-04-20 18:21:24,407 DEBUG preprocess_manager.py: 13. Dyst: -0.056229 (0.187931)
+2020-04-20 18:21:24,407 DEBUG preprocess_manager.py: 14. Fevd0: -0.055545 (0.193367)
+2020-04-20 18:21:24,407 DEBUG preprocess_manager.py: 15. D0month: 0.050383 (0.238142)
+2020-04-20 18:21:24,407 DEBUG preprocess_manager.py: 16. Lact: 0.028318 (0.507496)
+2020-04-20 18:21:24,407 DEBUG preprocess_manager.py: 17. RFM: -0.010670 (0.802835)
+2020-04-20 18:21:24,407 DEBUG preprocess_manager.py: 18. BCS5C: -0.009333 (0.827126)
+2020-04-20 18:21:24,407 DEBUG preprocess_manager.py: 19. BCS5: 0.008943 (0.834237)
+2020-04-20 18:21:24,408 DEBUG preprocess_manager.py: 20. Parity: 0.004548 (0.915250)
+2020-04-20 18:21:24,408 DEBUG classifier_manager.py: Classifier mode: normal
+2020-04-20 18:21:24,408 DEBUG classifier_manager.py: Parameters for 'AdaBoostClassifier': {'n_estimators': 425, 'learning_rate': 0.7000000000000001, 'algorithm': 'SAMME'}
+2020-04-20 18:21:24,408 INFO classifier_manager.py: Selected classifier: AdaBoostClassifier
+2020-04-20 18:21:24,408 DEBUG classifier_manager.py: Classifier info: AdaBoostClassifier(algorithm='SAMME', base_estimator=None,
+                   learning_rate=0.7000000000000001, n_estimators=425,
+                   random_state=None)
+2020-04-20 18:22:13,261 DEBUG classifier_manager.py: Feature selection metric:                                           feature_idx                                          cv_scores avg_score                                      feature_names   ci_bound    std_dev    std_err
+1                                                (1,)  [0.7397260273972602, 0.7804878048780488, 0.811...  0.732086                                           (DIMd0,)   0.169943   0.132221  0.0661105
+2                                             (1, 16)  [0.6911764705882353, 0.7534246575342466, 0.750...   0.74126                                    (DIMd0, Tempd0)  0.0513995  0.0399906  0.0199953
+3                                          (1, 2, 16)  [0.6814814814814815, 0.7651006711409395, 0.774...  0.737349                               (DIMd0, TRT, Tempd0)  0.0546573  0.0425252  0.0212626
+4                                      (1, 2, 13, 16)  [0.7183098591549295, 0.75, 0.8181818181818181,...  0.765758                          (DIMd0, TRT, VLS, Tempd0)  0.0470196  0.0365829  0.0182914
+5                                   (1, 2, 3, 13, 16)  [0.723404255319149, 0.7777777777777778, 0.8076...  0.766992                 (DIMd0, TRT, D0month, VLS, Tempd0)  0.0677071  0.0526784  0.0263392
+6                               (1, 2, 3, 13, 16, 17)  [0.7007299270072993, 0.7975460122699387, 0.827...  0.781125  (DIMd0, TRT, D0month, VLS, Tempd0, Milkincreas...  0.0635623  0.0494536  0.0247268
+7                            (1, 2, 3, 8, 13, 16, 17)  [0.7412587412587414, 0.8192771084337349, 0.807...  0.783609  (DIMd0, TRT, D0month, Dyst, VLS, Tempd0, Milki...  0.0525017  0.0408481   0.020424
+8                         (1, 2, 3, 8, 9, 13, 16, 17)  [0.8053691275167785, 0.7901234567901234, 0.792...  0.798961  (DIMd0, TRT, D0month, Dyst, CalfInfo, VLS, Tem...   0.030503  0.0237324  0.0118662
+9                      (1, 2, 3, 4, 8, 9, 13, 16, 17)  [0.7702702702702703, 0.8143712574850299, 0.843...  0.808464  (DIMd0, TRT, D0month, Season, Dyst, CalfInfo, ...  0.0442144  0.0344003  0.0172002
+10                 (1, 2, 3, 4, 8, 9, 10, 13, 16, 17)  [0.778523489932886, 0.8095238095238095, 0.8522...  0.803487  (DIMd0, TRT, D0month, Season, Dyst, CalfInfo, ...  0.0568849  0.0442584  0.0221292
+11              (0, 1, 2, 3, 4, 8, 9, 10, 13, 16, 17)  [0.76, 0.8323699421965318, 0.8457142857142858,...  0.806671  (Dairy, DIMd0, TRT, D0month, Season, Dyst, Cal...  0.0446126  0.0347101  0.0173551
+12           (0, 1, 2, 3, 4, 6, 8, 9, 10, 13, 16, 17)  [0.7586206896551724, 0.8187134502923976, 0.827...  0.807515  (Dairy, DIMd0, TRT, D0month, Season, Parity, D...   0.046006  0.0357943  0.0178971
+13       (0, 1, 2, 3, 4, 6, 8, 9, 10, 13, 14, 16, 17)  [0.7837837837837838, 0.8323699421965318, 0.828...  0.811309  (Dairy, DIMd0, TRT, D0month, Season, Parity, D...  0.0410317   0.031924   0.015962
+14   (0, 1, 2, 3, 4, 6, 8, 9, 10, 12, 13, 14, 16, 17)  [0.7567567567567568, 0.8208092485549134, 0.834...  0.815736  (Dairy, DIMd0, TRT, D0month, Season, Parity, D...  0.0458711  0.0356893  0.0178446
+15  (0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 12, 13, 14, 16...  [0.7552447552447552, 0.8117647058823529, 0.852...  0.803958  (Dairy, DIMd0, TRT, D0month, Season, Parity, C...  0.0475703  0.0370113  0.0185057
+16  (0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 12, 13, 14, 16...  [0.763888888888889, 0.8372093023255814, 0.8202...  0.806084  (Dairy, DIMd0, TRT, D0month, Season, Parity, C...  0.0588168  0.0457614  0.0228807
+17  (0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 12, 13, 14, 16...  [0.7733333333333333, 0.8187134502923976, 0.845...   0.80365  (Dairy, DIMd0, TRT, D0month, Season, Parity, C...  0.0526159  0.0409369  0.0204685
+18  (0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14...  [0.7808219178082193, 0.8092485549132947, 0.816...  0.791488  (Dairy, DIMd0, TRT, D0month, Season, Parity, C...  0.0497406  0.0386999  0.0193499
+19  (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,...  [0.7310344827586207, 0.8117647058823529, 0.832...  0.793072  (Dairy, DIMd0, TRT, D0month, Season, Lact, Par...  0.0520941   0.040531  0.0202655
+20  (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,...  [0.7346938775510204, 0.8045977011494253, 0.818...  0.778182  (Dairy, DIMd0, TRT, D0month, Season, Lact, Par...  0.0539899   0.042006   0.021003
+2020-04-20 18:22:13,299 INFO classifier_manager.py: Selected features: ('DIMd0', 'TRT', 'D0month', 'Season', 'Dyst', 'CalfInfo', 'VLS', 'Tempd0', 'Milkincrease5DIM')
+2020-04-20 18:22:13,299 INFO classifier_manager.py: Feature rank from high to low: ['DIMd0', 'Tempd0', 'TRT', 'VLS', 'D0month', 'Milkincrease5DIM', 'Dyst', 'CalfInfo', 'Season', 'RFM', 'Dairy', 'Parity', 'VLSC', 'BCS5C', 'CalvDif', 'Milkincrease9DIM', 'Milkincrease7DIM', 'BCS5', 'Lact', 'Fevd0']
+2020-04-20 18:22:13,422 DEBUG classifier_manager.py: Classifier mode: normal
+2020-04-20 18:22:13,422 DEBUG classifier_manager.py: Parameters for 'AdaBoostClassifier': {'n_estimators': 425, 'learning_rate': 0.7000000000000001, 'algorithm': 'SAMME'}
+2020-04-20 18:22:13,422 INFO classifier_manager.py: Selected classifier: AdaBoostClassifier
+2020-04-20 18:22:13,422 DEBUG classifier_manager.py: Classifier info: AdaBoostClassifier(algorithm='SAMME', base_estimator=None,
+                   learning_rate=0.7000000000000001, n_estimators=425,
+                   random_state=None)
+2020-04-20 18:22:13,754 DEBUG model_manager.py: Confusion matrix (tp, fp, fn, tn): (57, 18, 22, 13)
+2020-04-20 18:22:14,079 DEBUG model_manager.py: Confusion matrix (tp, fp, fn, tn): (65, 16, 14, 15)
+2020-04-20 18:22:14,403 DEBUG model_manager.py: Confusion matrix (tp, fp, fn, tn): (61, 19, 18, 12)
+2020-04-20 18:22:14,727 DEBUG model_manager.py: Confusion matrix (tp, fp, fn, tn): (71, 16, 9, 14)
+2020-04-20 18:22:15,048 DEBUG model_manager.py: Confusion matrix (tp, fp, fn, tn): (66, 14, 14, 16)
+2020-04-20 18:22:15,049 INFO model_manager.py: f1 for each fold: [0.7402597402597403, 0.8125000000000001, 0.7672955974842767, 0.8502994011976048, 0.825]
+2020-04-20 18:22:15,049 INFO model_manager.py: f1 score: 0.799071 ± 0.039863

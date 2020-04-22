@@ -113,7 +113,7 @@ class ConfigParser:
         """
         try:
             return self.config.getint(section, key)
-        except KeyError:
+        except (KeyError, configparser.NoOptionError):
             ConfigParser._print_no_key_warning(key)
             return None
 

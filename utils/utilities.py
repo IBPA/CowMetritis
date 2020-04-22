@@ -10,10 +10,67 @@ To-do:
 # standard imports
 import logging as log
 import os
+import pickle
 from shutil import copyfile
 
 # third party imports
 import numpy as np
+
+
+def dir_exists(directory):
+    """
+    Check if directory exists.
+
+    Inputs:
+        directory: (str) Directory to check.
+
+    Returns:
+        (bool) True if directory exists, False otherwise.
+    """
+    return os.path.isdir(directory)
+
+
+def save_pkl(obj, save_to):
+    """
+    Pickle the object.
+
+    Inputs:
+        obj: (object) Object to pickle.
+        save_to: (str) Filepath to pickle the object to.
+    """
+    with open(save_to, 'wb') as fid:
+        pickle.dump(obj, fid)
+
+
+def load_pkl(load_from):
+    """
+    Load the pickled object.
+
+    Inputs:
+        save_to: (str) Filepath to pickle the object to.
+
+    Returns:
+        (object) Loaded object.
+    """
+    with open(load_from, 'rb') as fid:
+        obj = pickle.load(fid)
+
+    return obj
+
+
+def create_dir(directory):
+    """
+    Create directory only if directory does not exist already.
+    If directory exists, raise RuntimeError.
+
+    Inputs:
+        directory: directory to create
+    """
+    if os.path.isdir(directory):
+        raise RuntimeError('Directory \'{}\' already exists!'.format(directory))
+    else:
+        log.info('Creating directory: %s', directory)
+        os.makedirs(directory)
 
 
 def get_results_of_search(results, report_score_using='f1', scoring=['f1', 'average_precision'], count=5):
